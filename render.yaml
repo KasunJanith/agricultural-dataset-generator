@@ -1,23 +1,21 @@
-services:
-  # Backend Service
+services:  # Backend Service
   - type: web
     name: agricultural-dataset-backend
     env: node
     region: oregon
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
+    buildCommand: npm install --prefix backend
+    startCommand: npm start --prefix backend
     envVars:
       - key: NODE_VERSION
         value: 18.18.0
       - key: GEMINI_API_KEY
         sync: false
     healthCheckPath: /api/health
-
   # Frontend Service (Static Site)
   - type: web
     name: agricultural-dataset-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: npm install --prefix frontend && npm run build --prefix frontend
     staticPublishPath: ./frontend/dist
     routes:
       - type: rewrite

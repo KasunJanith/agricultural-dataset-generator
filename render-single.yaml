@@ -1,0 +1,23 @@
+# Single Service Deployment (All-in-One)
+# This deploys both frontend and backend as one web service
+
+services:
+  - type: web
+    name: agricultural-dataset-generator
+    env: node
+    region: oregon    # Build both frontend and backend
+    buildCommand: npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend    # Start the backend (which serves the frontend)
+    startCommand: npm start --prefix backend
+    envVars:
+      - key: NODE_VERSION
+        value: 18.18.0
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /api/health
+    # Disk for SQLite database persistence
+    disk:
+      name: dataset-storage
+      mountPath: /opt/render/project/backend
+      sizeGB: 1
