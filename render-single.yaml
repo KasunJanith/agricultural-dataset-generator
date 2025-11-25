@@ -6,7 +6,7 @@ services:
     name: agricultural-dataset-generator
     env: node
     region: oregon    # Build both frontend and backend
-    buildCommand: npm install --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend# Start the backend (which serves the frontend)
+    buildCommand: npm ci --prefix backend && npm ci --include=dev --prefix frontend && npm run build --prefix frontend# Start the backend (which serves the frontend)
     startCommand: npm start --prefix backend
     envVars:
       - key: NODE_VERSION
