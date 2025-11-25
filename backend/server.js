@@ -2,19 +2,39 @@ import express from 'express';
 import cors from 'cors';
 import sqlite3 from 'sqlite3';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-app.use(cors());
+// Get Gemini API key from environment
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error('GEMINI_API_KEY environment variable is required');
+  process.exit(1);
+}
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+// CORS configuration for production
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
 app.use(express.json());
 
+// Serve static files from frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+}
+
 // Initialize SQLite database
-const db = new sqlite3.Database('./datasets.db', (err) => {
+const db = new sqlite3.Database(process.env.DATABASE_URL || './datasets.db', (err) => {
   if (err) {
     console.error('Error opening database:', err);
   } else {
@@ -27,9 +47,7 @@ function initializeDatabase() {
   db.run(`CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sinhala TEXT NOT NULL,
-    singlish1 TEXT NOT NULL,
-    singlish2 TEXT,
-    singlish3 TEXT,
+    singlish TEXT NOT NULL,
     variant1 TEXT NOT NULL,
     variant2 TEXT NOT NULL,
     variant3 TEXT NOT NULL,
@@ -87,7 +105,9 @@ app.post('/api/generate-batch', async (req, res) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });    const prompt = `
+    });
+
+    const prompt = `
       Generate ${count} random agricultural terms and sentences in Sinhala language specifically for the "${subdomain}" subdomain.
       Context: ${SUBDOMAIN_PROMPTS[subdomain]}
       
@@ -96,8 +116,8 @@ app.post('/api/generate-batch', async (req, res) => {
       2. All content must be specifically related to ${subdomain} in agriculture
       3. Avoid duplicates with these existing terms: ${existingTerms.join(', ').substring(0, 1000) || 'none'}
       4. For each item, provide:
-         - Sinhala text (in Sinhala script)
-         - Multiple Singlish variations (1 to 3 different ways to write the Sinhala in English letters)
+         - Sinhala text
+         - Singlish (Sinhala written in English letters)
          - Three different English translation variants
          - Type: "word" or "sentence" based on whether it's a single word or a sentence
       
@@ -105,9 +125,7 @@ app.post('/api/generate-batch', async (req, res) => {
       [
         {
           "sinhala": "සිංහල පාඨය",
-          "singlish1": "first singlish variation",
-          "singlish2": "second singlish variation (optional)",
-          "singlish3": "third singlish variation (optional)",
+          "singlish": "singlish version",
           "variant1": "first english translation",
           "variant2": "second english translation",
           "variant3": "third english translation", 
@@ -115,11 +133,11 @@ app.post('/api/generate-batch', async (req, res) => {
         }
       ]
 
-      Important: Provide 1-3 Singlish variations showing different ways people might write the Sinhala word/phrase in English letters.
-      If only one natural way exists, provide just singlish1. Otherwise provide 2-3 variations.
       Make sure translations are accurate, domain-specific, and culturally appropriate for Sri Lankan agriculture.
       Generate truly random and diverse content that hasn't been generated before.
-    `;console.log(`Generating ${count} items for subdomain: ${subdomain}`);
+    `;
+
+    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -127,7 +145,7 @@ app.post('/api/generate-batch', async (req, res) => {
     const response = await result.response;
     const text = response.text();
     
-    console.log("Raw Gemini response:", text.substring(0, 500) + "...");
+    console.log("Raw Gemini response received");
     
     // Extract JSON from response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -136,10 +154,12 @@ app.post('/api/generate-batch', async (req, res) => {
     }
 
     const generatedData = JSON.parse(jsonMatch[0]);
-    console.log(`Parsed ${generatedData.length} items from response`);    // Save to database
+    console.log(`Parsed ${generatedData.length} items from response`);
+
+    // Save to database
     const stmt = db.prepare(`
-      INSERT OR IGNORE INTO datasets (sinhala, singlish1, singlish2, singlish3, variant1, variant2, variant3, subdomain, type)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO datasets (sinhala, singlish, variant1, variant2, variant3, subdomain, type)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     let savedCount = 0;
@@ -149,9 +169,7 @@ app.post('/api/generate-batch', async (req, res) => {
       await new Promise((resolve, reject) => {
         stmt.run([
           item.sinhala,
-          item.singlish1 || item.singlish || item.sinhala, // fallback for backward compatibility
-          item.singlish2 || null,
-          item.singlish3 || null,
+          item.singlish || item.sinhala,
           item.variant1,
           item.variant2,
           item.variant3,
@@ -160,7 +178,7 @@ app.post('/api/generate-batch', async (req, res) => {
         ], function(err) {
           if (err) {
             console.error('Database error for item:', item.sinhala, err);
-            resolve(); // Continue with next item
+            resolve();
           } else if (this.changes > 0) {
             savedCount++;
             savedItems.push({
@@ -170,7 +188,7 @@ app.post('/api/generate-batch', async (req, res) => {
             });
             resolve();
           } else {
-            resolve(); // Duplicate item, skip
+            resolve();
           }
         });
       });
@@ -242,15 +260,15 @@ app.get('/api/export-csv', (req, res) => {
   db.all(query, params, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to export data' });
-    }    const headers = ['Sinhala', 'Singlish1', 'Singlish2', 'Singlish3', 'Variant1', 'Variant2', 'Variant3', 'Subdomain', 'Type'];
+    }
+
+    const headers = ['Sinhala', 'Singlish', 'Variant1', 'Variant2', 'Variant3', 'Subdomain', 'Type'];
     let csvContent = headers.join(',') + '\n';
     
     rows.forEach(row => {
       const escapedRow = [
         `"${(row.sinhala || '').replace(/"/g, '""')}"`,
-        `"${(row.singlish1 || row.singlish || '').replace(/"/g, '""')}"`,
-        `"${(row.singlish2 || '').replace(/"/g, '""')}"`,
-        `"${(row.singlish3 || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish || '').replace(/"/g, '""')}"`,
         `"${(row.variant1 || '').replace(/"/g, '""')}"`,
         `"${(row.variant2 || '').replace(/"/g, '""')}"`,
         `"${(row.variant3 || '').replace(/"/g, '""')}"`,
@@ -267,11 +285,23 @@ app.get('/api/export-csv', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
+
+// Serve frontend for all other routes in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Agricultural Dataset Generator Backend`);
+  console.log(`📊 Agricultural Dataset Generator`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });

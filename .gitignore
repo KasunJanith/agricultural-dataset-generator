@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+*/node_modules/
 package-lock.json
 
 # Environment variables
@@ -10,6 +11,7 @@ package-lock.json
 # Database
 *.db
 *.db-journal
+*.sqlite
 
 # Build outputs
 dist/
@@ -29,7 +31,10 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
+Thumbs.db
 
 # Temporary files
 .tmp/
