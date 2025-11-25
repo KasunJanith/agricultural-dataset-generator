@@ -51,7 +51,9 @@ function initializeDatabase() {
   db.run(`CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sinhala TEXT NOT NULL,
-    singlish TEXT NOT NULL,
+    singlish1 TEXT NOT NULL,
+    singlish2 TEXT,
+    singlish3 TEXT,
     variant1 TEXT NOT NULL,
     variant2 TEXT NOT NULL,
     variant3 TEXT NOT NULL,
@@ -109,9 +111,7 @@ app.post('/api/generate-batch', async (req, res) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });
-
-    const prompt = `
+    });    const prompt = `
       Generate ${count} random agricultural terms and sentences in Sinhala language specifically for the "${subdomain}" subdomain.
       Context: ${SUBDOMAIN_PROMPTS[subdomain]}
       
@@ -120,8 +120,8 @@ app.post('/api/generate-batch', async (req, res) => {
       2. All content must be specifically related to ${subdomain} in agriculture
       3. Avoid duplicates with these existing terms: ${existingTerms.join(', ').substring(0, 1000) || 'none'}
       4. For each item, provide:
-         - Sinhala text
-         - Singlish (Sinhala written in English letters)
+         - Sinhala text (in Sinhala script)
+         - Multiple Singlish variations (1 to 3 different ways to write the Sinhala in English letters)
          - Three different English translation variants
          - Type: "word" or "sentence" based on whether it's a single word or a sentence
       
@@ -129,7 +129,9 @@ app.post('/api/generate-batch', async (req, res) => {
       [
         {
           "sinhala": "සිංහල පාඨය",
-          "singlish": "singlish version",
+          "singlish1": "first singlish variation",
+          "singlish2": "second singlish variation (optional)",
+          "singlish3": "third singlish variation (optional)",
           "variant1": "first english translation",
           "variant2": "second english translation",
           "variant3": "third english translation", 
@@ -137,6 +139,8 @@ app.post('/api/generate-batch', async (req, res) => {
         }
       ]
 
+      Important: Provide 1-3 Singlish variations showing different ways people might write the Sinhala word/phrase in English letters.
+      If only one natural way exists, provide just singlish1. Otherwise provide 2-3 variations.
       Make sure translations are accurate, domain-specific, and culturally appropriate for Sri Lankan agriculture.
       Generate truly random and diverse content that hasn't been generated before.
     `;
@@ -158,12 +162,10 @@ app.post('/api/generate-batch', async (req, res) => {
     }
 
     const generatedData = JSON.parse(jsonMatch[0]);
-    console.log(`Parsed ${generatedData.length} items from response`);
-
-    // Save to database
+    console.log(`Parsed ${generatedData.length} items from response`);    // Save to database
     const stmt = db.prepare(`
-      INSERT OR IGNORE INTO datasets (sinhala, singlish, variant1, variant2, variant3, subdomain, type)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO datasets (sinhala, singlish1, singlish2, singlish3, variant1, variant2, variant3, subdomain, type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     let savedCount = 0;
@@ -173,7 +175,9 @@ app.post('/api/generate-batch', async (req, res) => {
       await new Promise((resolve, reject) => {
         stmt.run([
           item.sinhala,
-          item.singlish || item.sinhala,
+          item.singlish1 || item.singlish || item.sinhala, // fallback for backward compatibility
+          item.singlish2 || null,
+          item.singlish3 || null,
           item.variant1,
           item.variant2,
           item.variant3,
@@ -264,15 +268,15 @@ app.get('/api/export-csv', (req, res) => {
   db.all(query, params, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to export data' });
-    }
-
-    const headers = ['Sinhala', 'Singlish', 'Variant1', 'Variant2', 'Variant3', 'Subdomain', 'Type'];
+    }    const headers = ['Sinhala', 'Singlish1', 'Singlish2', 'Singlish3', 'Variant1', 'Variant2', 'Variant3', 'Subdomain', 'Type'];
     let csvContent = headers.join(',') + '\n';
     
     rows.forEach(row => {
       const escapedRow = [
         `"${(row.sinhala || '').replace(/"/g, '""')}"`,
-        `"${(row.singlish || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish1 || row.singlish || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish2 || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish3 || '').replace(/"/g, '""')}"`,
         `"${(row.variant1 || '').replace(/"/g, '""')}"`,
         `"${(row.variant2 || '').replace(/"/g, '""')}"`,
         `"${(row.variant3 || '').replace(/"/g, '""')}"`,
