@@ -2,8 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import sqlite3 from 'sqlite3';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
