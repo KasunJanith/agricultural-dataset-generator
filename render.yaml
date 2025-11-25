@@ -10,12 +10,11 @@ services:  # Backend Service
         value: 18.18.0
       - key: GEMINI_API_KEY
         sync: false
-    healthCheckPath: /api/health
-  # Frontend Service (Static Site)
+    healthCheckPath: /api/health  # Frontend Service (Static Site)
   - type: web
     name: agricultural-dataset-frontend
     env: static
-    buildCommand: npm install --prefix frontend && npm run build --prefix frontend
+    buildCommand: npm install --include=dev --prefix frontend && npm run build --prefix frontend
     staticPublishPath: ./frontend/dist
     routes:
       - type: rewrite
