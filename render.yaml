@@ -1,0 +1,29 @@
+services:
+  # Backend Service
+  - type: web
+    name: agricultural-dataset-backend
+    env: node
+    region: oregon
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.18.0
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /api/health
+
+  # Frontend Service (Static Site)
+  - type: web
+    name: agricultural-dataset-frontend
+    env: static
+    region: oregon
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://agricultural-dataset-backend.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
