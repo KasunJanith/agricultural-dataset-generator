@@ -10,10 +10,11 @@
 - Added root `package.json` for monorepo structure
 - Build command now includes: `cd frontend && npm install && npm run build`
 
-### 2. Database Schema Update - ✅ COMPLETE
-- Updated from single `singlish` column to `singlish1`, `singlish2`, `singlish3`
-- Now generates 1-3 Singlish variations per term
-- Old database deleted and schema refreshed
+### 2. Database Schema Update - ✅ COMPLETE (Option B Implemented)
+- **Schema**: `singlish1` (required), `singlish2` (optional), `singlish3` (optional), `english` (single translation)
+- **Design**: Multiple Singlish variations (1-3) + One English translation per term
+- Gemini AI generates 1-3 natural Singlish spelling variations when alternatives exist
+- Old database deleted and schema refreshed with new structure
 
 ### 3. Gemini API Model Update - ✅ FIXED
 - Changed from deprecated `gemini-pro` to `gemini-1.5-flash`
@@ -36,10 +37,11 @@
 - ✅ `DEPLOYMENT-STATUS.md` - This file
 
 ### Updated Files:
-- ✅ `backend/server.js` - Multiple Singlish fields, updated Gemini model
-- ✅ `frontend/src/App.jsx` - Display multiple Singlish variations
+- ✅ `backend/server.js` - Option B schema (singlish1/2/3 + english), updated to gemini-2.5-flash
+- ✅ `frontend/src/App.jsx` - Display multiple Singlish variations with conditional rendering
 - ✅ `frontend/src/App.css` - Styling for variations display
 - ✅ `frontend/vite.config.js` - Production build configuration
+- ✅ `backend/.env` - Contains GEMINI_API_KEY (gitignored)
 
 ## 🚀 Next Steps - Deploy to Render
 
