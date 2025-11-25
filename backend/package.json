@@ -13,6 +13,9 @@
     "sqlite3": "^5.1.6",
     "@google/generative-ai": "^0.2.1"
   },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
   "engines": {
     "node": ">=18.0.0"
   }
