@@ -13,6 +13,11 @@ function App() {
   const [selectedSubdomainFilter, setSelectedSubdomainFilter] = useState('')
   const [serverHealth, setServerHealth] = useState('checking')
 
+  // Auto-detect API base URL
+  const API_BASE = process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:5000/api'
+    : '/api';
+
   useEffect(() => {
     checkServerHealth()
     fetchSubdomains()
@@ -22,17 +27,17 @@ function App() {
 
   const checkServerHealth = async () => {
     try {
-      await axios.get('/api/health')
+      await axios.get(`${API_BASE}/health`)
       setServerHealth('healthy')
     } catch (err) {
       setServerHealth('unhealthy')
-      setError('Backend server is not responding. Please make sure the backend is running on port 5000.')
+      setError('Backend server is not responding. Please try again later.')
     }
   }
 
   const fetchSubdomains = async () => {
     try {
-      const response = await axios.get('/api/subdomains')
+      const response = await axios.get(`${API_BASE}/subdomains`)
       setSubdomains(response.data)
       if (response.data.length > 0) {
         setSubdomain(response.data[0])
@@ -45,7 +50,7 @@ function App() {
   const fetchDatasets = async (subdomainFilter = '') => {
     try {
       const params = subdomainFilter ? { subdomain: subdomainFilter } : {}
-      const response = await axios.get('/api/datasets', { params })
+      const response = await axios.get(`${API_BASE}/datasets`, { params })
       setDatasets(response.data)
     } catch (err) {
       setError('Failed to load datasets')
@@ -54,7 +59,7 @@ function App() {
 
   const fetchStatistics = async () => {
     try {
-      const response = await axios.get('/api/statistics')
+      const response = await axios.get(`${API_BASE}/statistics`)
       setStatistics(response.data)
     } catch (err) {
       console.error('Failed to load statistics')
@@ -72,7 +77,7 @@ function App() {
     setSuccess('')
 
     try {
-      const response = await axios.post('/api/generate-batch', {
+      const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
         count: 20
       })
@@ -94,7 +99,7 @@ function App() {
   const handleExportCSV = async () => {
     try {
       const params = selectedSubdomainFilter ? { subdomain: selectedSubdomainFilter } : {}
-      const response = await axios.get('/api/export-csv', {
+      const response = await axios.get(`${API_BASE}/export-csv`, {
         params,
         responseType: 'blob'
       })
@@ -135,6 +140,9 @@ function App() {
         <p>Automatically generate random Sinhala agricultural terms and sentences with English translations for machine learning</p>
         <div style={{ marginTop: '10px' }}>
           Server Status: <span className="health-status">{serverHealth}</span>
+          <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
+            Environment: {process.env.NODE_ENV || 'development'}
+          </span>
         </div>
       </div>
 
@@ -164,12 +172,14 @@ function App() {
           disabled={loading || serverHealth !== 'healthy'}
         >
           {loading ? '🔄 Generating 20 Records...' : '🚀 Generate 20 Random Records'}
-        </button>        <div className="stats-info">
+        </button>
+
+        <div className="stats-info">
           <p><strong>📝 How it works:</strong> 
           <br/>• Select an agricultural subdomain and click "Generate 20 Random Records"
           <br/>• The system uses Gemini AI to generate random Sinhala words/sentences with translations
           <br/>• Automatically checks for duplicates and ensures unique content
-          <br/>• Generates a mix of words and sentences with 1-3 Singlish variations and 3 English variants each
+          <br/>• Generates a mix of words and sentences with three English variants each
           <br/>• Data is saved in SQLite database and can be exported as CSV</p>
         </div>
       </div>
@@ -220,22 +230,24 @@ function App() {
       )}
 
       <div className="dataset-table">
-        {datasets.length === 0 ? (          <div className="loading">
+        {datasets.length === 0 ? (
+          <div className="loading">
             <h3>No datasets generated yet! 🚀</h3>
             <p>Select a subdomain and click "Generate 20 Random Records" to start building your agricultural translation dataset.</p>
-            <p>Each generation creates 20 new unique records with Sinhala text, 1-3 Singlish variations, and 3 English variants.</p>
+            <p>Each generation creates 20 new unique records with Sinhala text, Singlish, and three English variants.</p>
           </div>
         ) : (
           <>
             <div style={{ padding: '15px', background: '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
               <strong>Showing {datasets.length} records</strong>
               {selectedSubdomainFilter && ` for ${selectedSubdomainFilter.replace(/_/g, ' ').toUpperCase()}`}
-            </div>            <table>
+            </div>
+            <table>
               <thead>
                 <tr>
                   <th>Type</th>
                   <th>Sinhala</th>
-                  <th>Singlish Variations</th>
+                  <th>Singlish</th>
                   <th>Variant 1</th>
                   <th>Variant 2</th>
                   <th>Variant 3</th>
@@ -251,11 +263,7 @@ function App() {
                       </span>
                     </td>
                     <td style={{ fontFamily: 'Arial, sans-serif' }}>{dataset.sinhala}</td>
-                    <td>
-                      <div>1. {dataset.singlish1 || dataset.singlish}</div>
-                      {dataset.singlish2 && <div>2. {dataset.singlish2}</div>}
-                      {dataset.singlish3 && <div>3. {dataset.singlish3}</div>}
-                    </td>
+                    <td>{dataset.singlish}</td>
                     <td>{dataset.variant1}</td>
                     <td>{dataset.variant2}</td>
                     <td>{dataset.variant3}</td>
