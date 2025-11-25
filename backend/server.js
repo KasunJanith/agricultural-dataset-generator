@@ -51,10 +51,10 @@ function initializeDatabase() {
   db.run(`CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sinhala TEXT NOT NULL,
-    singlish TEXT NOT NULL,
-    variant1 TEXT NOT NULL,
-    variant2 TEXT NOT NULL,
-    variant3 TEXT NOT NULL,
+    singlish1 TEXT NOT NULL,
+    singlish2 TEXT,
+    singlish3 TEXT,
+    english TEXT NOT NULL,
     subdomain TEXT NOT NULL,
     type TEXT NOT NULL CHECK(type IN ('word', 'sentence')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -109,9 +109,7 @@ app.post('/api/generate-batch', async (req, res) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });
-
-    const prompt = `
+    });    const prompt = `
       Generate ${count} random agricultural terms and sentences in Sinhala language specifically for the "${subdomain}" subdomain.
       Context: ${SUBDOMAIN_PROMPTS[subdomain]}
       
@@ -120,19 +118,19 @@ app.post('/api/generate-batch', async (req, res) => {
       2. All content must be specifically related to ${subdomain} in agriculture
       3. Avoid duplicates with these existing terms: ${existingTerms.join(', ').substring(0, 1000) || 'none'}
       4. For each item, provide:
-         - Sinhala text
-         - Singlish (Sinhala written in English letters)
-         - Three different English translation variants
+         - Sinhala text (in Sinhala script)
+         - 1-3 Singlish variations (Sinhala written in English letters). Include multiple variations only if there are natural alternative spellings. At minimum provide singlish1.
+         - One accurate English translation
          - Type: "word" or "sentence" based on whether it's a single word or a sentence
       
       Return ONLY a JSON array in this exact format:
       [
         {
           "sinhala": "සිංහල පාඨය",
-          "singlish": "singlish version",
-          "variant1": "first english translation",
-          "variant2": "second english translation",
-          "variant3": "third english translation", 
+          "singlish1": "main singlish version",
+          "singlish2": "alternative singlish spelling (optional)",
+          "singlish3": "another alternative if exists (optional)",
+          "english": "english translation",
           "type": "word" or "sentence"
         }
       ]
@@ -158,11 +156,9 @@ app.post('/api/generate-batch', async (req, res) => {
     }
 
     const generatedData = JSON.parse(jsonMatch[0]);
-    console.log(`Parsed ${generatedData.length} items from response`);
-
-    // Save to database
+    console.log(`Parsed ${generatedData.length} items from response`);    // Save to database
     const stmt = db.prepare(`
-      INSERT OR IGNORE INTO datasets (sinhala, singlish, variant1, variant2, variant3, subdomain, type)
+      INSERT OR IGNORE INTO datasets (sinhala, singlish1, singlish2, singlish3, english, subdomain, type)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
@@ -173,10 +169,10 @@ app.post('/api/generate-batch', async (req, res) => {
       await new Promise((resolve, reject) => {
         stmt.run([
           item.sinhala,
-          item.singlish || item.sinhala,
-          item.variant1,
-          item.variant2,
-          item.variant3,
+          item.singlish1 || item.sinhala,
+          item.singlish2 || null,
+          item.singlish3 || null,
+          item.english,
           subdomain,
           item.type || (item.sinhala.split(' ').length > 2 ? 'sentence' : 'word')
         ], function(err) {
@@ -260,22 +256,21 @@ app.get('/api/export-csv', (req, res) => {
     query += " WHERE subdomain = ?";
     params.push(subdomain);
   }
-
   db.all(query, params, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to export data' });
     }
 
-    const headers = ['Sinhala', 'Singlish', 'Variant1', 'Variant2', 'Variant3', 'Subdomain', 'Type'];
+    const headers = ['Sinhala', 'Singlish1', 'Singlish2', 'Singlish3', 'English', 'Subdomain', 'Type'];
     let csvContent = headers.join(',') + '\n';
     
     rows.forEach(row => {
       const escapedRow = [
         `"${(row.sinhala || '').replace(/"/g, '""')}"`,
-        `"${(row.singlish || '').replace(/"/g, '""')}"`,
-        `"${(row.variant1 || '').replace(/"/g, '""')}"`,
-        `"${(row.variant2 || '').replace(/"/g, '""')}"`,
-        `"${(row.variant3 || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish1 || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish2 || '').replace(/"/g, '""')}"`,
+        `"${(row.singlish3 || '').replace(/"/g, '""')}"`,
+        `"${(row.english || '').replace(/"/g, '""')}"`,
         `"${row.subdomain}"`,
         `"${row.type}"`
       ];

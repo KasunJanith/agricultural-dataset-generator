@@ -241,16 +241,13 @@ function App() {
             <div style={{ padding: '15px', background: '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
               <strong>Showing {datasets.length} records</strong>
               {selectedSubdomainFilter && ` for ${selectedSubdomainFilter.replace(/_/g, ' ').toUpperCase()}`}
-            </div>
-            <table>
+            </div>            <table>
               <thead>
                 <tr>
                   <th>Type</th>
                   <th>Sinhala</th>
-                  <th>Singlish</th>
-                  <th>Variant 1</th>
-                  <th>Variant 2</th>
-                  <th>Variant 3</th>
+                  <th>Singlish Variations</th>
+                  <th>English</th>
                   <th>Subdomain</th>
                 </tr>
               </thead>
@@ -263,10 +260,14 @@ function App() {
                       </span>
                     </td>
                     <td style={{ fontFamily: 'Arial, sans-serif' }}>{dataset.sinhala}</td>
-                    <td>{dataset.singlish}</td>
-                    <td>{dataset.variant1}</td>
-                    <td>{dataset.variant2}</td>
-                    <td>{dataset.variant3}</td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {dataset.singlish1 && <div>1. {dataset.singlish1}</div>}
+                        {dataset.singlish2 && <div>2. {dataset.singlish2}</div>}
+                        {dataset.singlish3 && <div>3. {dataset.singlish3}</div>}
+                      </div>
+                    </td>
+                    <td>{dataset.english}</td>
                     <td>{dataset.subdomain}</td>
                   </tr>
                 ))}
