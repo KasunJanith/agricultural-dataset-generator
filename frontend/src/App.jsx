@@ -242,12 +242,11 @@ function App() {
               <strong>Showing {datasets.length} records</strong>
               {selectedSubdomainFilter && ` for ${selectedSubdomainFilter.replace(/_/g, ' ').toUpperCase()}`}
             </div>
-            <table>
-              <thead>
+            <table>              <thead>
                 <tr>
                   <th>Type</th>
                   <th>Sinhala</th>
-                  <th>Singlish</th>
+                  <th>Singlish Variations</th>
                   <th>Variant 1</th>
                   <th>Variant 2</th>
                   <th>Variant 3</th>
@@ -263,7 +262,11 @@ function App() {
                       </span>
                     </td>
                     <td style={{ fontFamily: 'Arial, sans-serif' }}>{dataset.sinhala}</td>
-                    <td>{dataset.singlish}</td>
+                    <td>
+                      <div>1. {dataset.singlish1 || dataset.singlish}</div>
+                      {dataset.singlish2 && <div>2. {dataset.singlish2}</div>}
+                      {dataset.singlish3 && <div>3. {dataset.singlish3}</div>}
+                    </td>
                     <td>{dataset.variant1}</td>
                     <td>{dataset.variant2}</td>
                     <td>{dataset.variant3}</td>
