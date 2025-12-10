@@ -112,29 +112,34 @@ app.post('/api/generate-batch', async (req, res) => {
         else resolve(rows.map(row => row.sinhala));
       });
     });    const prompt = `
-      Generate ${count} random agricultural terms and sentences in Sinhala language specifically for the "${subdomain}" subdomain.
+      Generate ${count} high-quality, diverse agricultural translation pairsspecifically for the "${subdomain}" subdomain.
       Context: ${SUBDOMAIN_PROMPTS[subdomain]}
       
       Requirements:
       1. Generate a mix of single words and short sentences (approximately 50% words, 50% sentences)
-      2. All content must be specifically related to ${subdomain} in agriculture
-      3. Avoid duplicates with these existing terms: ${existingTerms.join(', ').substring(0, 1000) || 'none'}
-      4. For each item, provide:
+      2. DATA MIX: 40% technical terms (words), 60% conversational sentences (e.g., a farmer asking for advice).
+      3. All content must be specifically related to ${subdomain} in agriculture(Focus on rural Sri Lankan context)
+      4. Avoid duplicates with these existing terms: ${existingTerms.join(', ').substring(0, 1000) || 'none'}
+      5. For each item, provide:
          - Sinhala text (in Sinhala script)
          - Multiple Singlish variations (1 to 3 different ways to write the Sinhala in English letters)
+         -SINGLISH VARIATIONS (Crucial for MT5 robustness):
+              - singlish1: Standard phonetic (e.g., "govithana")
+              - singlish2: Common social media/SMS style (e.g., "govitana" - ignoring 'h')
+              - singlish3: English-mixed style (e.g., "farming eka" - mix of Sinhala root + English term)
          - Three different English translation variants
          - Type: "word" or "sentence" based on whether it's a single word or a sentence
       
       Return ONLY a JSON array in this exact format:
       [
         {
-          "sinhala": "සිංහල පාඨය",
-          "singlish1": "first singlish variation",
-          "singlish2": "second singlish variation (optional)",
-          "singlish3": "third singlish variation (optional)",
-          "variant1": "first english translation",
-          "variant2": "second english translation",
-          "variant3": "third english translation", 
+          "sinhala": "සිංහල අකුරෙන්",
+          "singlish1": "phonetic version",
+          "singlish2": "simplified/SMS version (optional)",
+          "singlish3": "mixed english-sinhala version (optional)",
+          "variant1": "Formal English translation",
+          "variant2": "Casual/Spoken English translation",
+          "variant3": "Short technical description", 
           "type": "word" or "sentence"
         }
       ]
