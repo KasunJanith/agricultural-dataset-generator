@@ -125,8 +125,8 @@ app.post('/api/generate-batch', async (req, res) => {
          - Multiple Singlish variations (1 to 3 different ways to write the Sinhala in English letters)
          -SINGLISH VARIATIONS (Crucial for MT5 robustness):
               - singlish1: Standard phonetic (e.g., "govithana")
-              - singlish2: Common social media/SMS style (e.g., "govitana" , shortrning or altering spellings)
-              - singlish3: English-mixed style (e.g., "farming eka" - mix of English term + Sinhala root)
+              - singlish2: Common social media/SMS style (e.g., "govitana" , shortening words like "mnwd, khmd, ndda. krda" or altering spellings)
+              - singlish3: English-mixed style (e.g., "farming eka, liquid pohora" - mix of both English term + Singlish term)
          - Three different English translation variants
          - Type: "word" or "sentence" based on whether it's a single word or a sentence
       
