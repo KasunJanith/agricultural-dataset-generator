@@ -172,14 +172,12 @@ function App() {
           disabled={loading || serverHealth !== 'healthy'}
         >
           {loading ? '🔄 Generating 20 Records...' : '🚀 Generate 20 Random Records'}
-        </button>
-
-        <div className="stats-info">
+        </button>        <div className="stats-info">
           <p><strong>📝 How it works:</strong> 
           <br/>• Select an agricultural subdomain and click "Generate 20 Random Records"
           <br/>• The system uses Gemini AI to generate random Sinhala words/sentences with translations
           <br/>• Automatically checks for duplicates and ensures unique content
-          <br/>• Generates a mix of words and sentences with three English variants each
+          <br/>• Generates 1-3 Singlish variations (different ways to romanize) and 3 English translation variants per term
           <br/>• Data is saved in SQLite database and can be exported as CSV</p>
         </div>
       </div>
@@ -230,11 +228,10 @@ function App() {
       )}
 
       <div className="dataset-table">
-        {datasets.length === 0 ? (
-          <div className="loading">
+        {datasets.length === 0 ? (          <div className="loading">
             <h3>No datasets generated yet! 🚀</h3>
             <p>Select a subdomain and click "Generate 20 Random Records" to start building your agricultural translation dataset.</p>
-            <p>Each generation creates 20 new unique records with Sinhala text, Singlish, and three English variants.</p>
+            <p>Each generation creates 20 new unique records with Sinhala text, 1-3 Singlish variations, and three English translation variants.</p>
           </div>
         ) : (
           <>
@@ -247,7 +244,7 @@ function App() {
                   <th>Type</th>
                   <th>Sinhala</th>
                   <th>Singlish Variations</th>
-                  <th>English</th>
+                  <th>English Variants</th>
                   <th>Subdomain</th>
                 </tr>
               </thead>
@@ -267,7 +264,13 @@ function App() {
                         {dataset.singlish3 && <div>3. {dataset.singlish3}</div>}
                       </div>
                     </td>
-                    <td>{dataset.english}</td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {dataset.variant1 && <div>1. {dataset.variant1}</div>}
+                        {dataset.variant2 && <div>2. {dataset.variant2}</div>}
+                        {dataset.variant3 && <div>3. {dataset.variant3}</div>}
+                      </div>
+                    </td>
                     <td>{dataset.subdomain}</td>
                   </tr>
                 ))}
