@@ -70,16 +70,14 @@ function App() {
     if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
-    }
-
-    setLoading(true)
+    }    setLoading(true)
     setError('')
     setSuccess('')
 
     try {
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 20
+        count: 50
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -164,17 +162,17 @@ function App() {
         </div>
 
         {error && <div className="error">❌ {error}</div>}
-        {success && <div className="success">{success}</div>}
-
-        <button 
+        {success && <div className="success">{success}</div>}        <button 
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}
         >
-          {loading ? '🔄 Generating 20 Records...' : '🚀 Generate 20 Random Records'}
-        </button>        <div className="stats-info">
+          {loading ? '🔄 Generating 50 Records...' : '🚀 Generate 50 Random Records'}
+        </button>
+
+        <div className="stats-info">
           <p><strong>📝 How it works:</strong> 
-          <br/>• Select an agricultural subdomain and click "Generate 20 Random Records"
+          <br/>• Select an agricultural subdomain and click "Generate 50 Random Records"
           <br/>• The system uses Gemini AI to generate random Sinhala words/sentences with translations
           <br/>• Automatically checks for duplicates and ensures unique content
           <br/>• Generates 1-3 Singlish variations (different ways to romanize) and 3 English translation variants per term
@@ -225,13 +223,12 @@ function App() {
             })}
           </div>
         </div>
-      )}
-
-      <div className="dataset-table">
-        {datasets.length === 0 ? (          <div className="loading">
+      )}      <div className="dataset-table">
+        {datasets.length === 0 ? (
+          <div className="loading">
             <h3>No datasets generated yet! 🚀</h3>
-            <p>Select a subdomain and click "Generate 20 Random Records" to start building your agricultural translation dataset.</p>
-            <p>Each generation creates 20 new unique records with Sinhala text, 1-3 Singlish variations, and three English translation variants.</p>
+            <p>Select a subdomain and click "Generate 50 Random Records" to start building your agricultural translation dataset.</p>
+            <p>Each generation creates 50 new unique records with Sinhala text, 1-3 Singlish variations, and three English translation variants.</p>
           </div>
         ) : (
           <>

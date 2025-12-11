@@ -99,7 +99,7 @@ app.get('/api/subdomains', (req, res) => {
 
 app.post('/api/generate-batch', async (req, res) => {
   try {
-    const { subdomain, count = 20 } = req.body;
+    const { subdomain, count = 50 } = req.body;
     
     if (!subdomain) {
       return res.status(400).json({ error: 'Subdomain is required' });
