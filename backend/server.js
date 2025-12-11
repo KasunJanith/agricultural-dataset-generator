@@ -112,43 +112,101 @@ app.post('/api/generate-batch', async (req, res) => {
         else resolve(rows.map(row => row.sinhala));
       });
     });    const prompt = `
-      Generate ${count} high-quality, diverse agricultural translation pairsspecifically for the "${subdomain}" subdomain.
-      Context: ${SUBDOMAIN_PROMPTS[subdomain]}
-      
-      Requirements:
-      1. Generate a mix of single words and short sentences (approximately 50% words, 50% sentences)
-      2. DATA MIX: 40% technical terms (words), 60% conversational sentences (e.g., a farmer asking for advice).
-      3. All content must be specifically related to ${subdomain} in agriculture(Focus on rural Sri Lankan context)
-      4. Avoid duplicates with these existing terms: ${existingTerms.join(', ').substring(0, 1000) || 'none'}
-      5. For each item, provide:
-         - Sinhala text (in Sinhala script)
-         - Multiple Singlish variations (1 to 3 different ways to write the Sinhala in English letters)
-         -SINGLISH VARIATIONS (Crucial for MT5 robustness):
-              - singlish1: Standard phonetic (e.g., "govithana")
-              - singlish2: Common social media/SMS style (e.g., "govitana" , shortening words like "mnwd, khmd, ndda. krda" or altering spellings)
-              - singlish3: English-mixed style (e.g., "farming eka, liquid pohora" - mix of both English + Singlish together)
-         - Three different English translation variants
-         - Type: "word" or "sentence" based on whether it's a single word or a sentence
-      
-      Return ONLY a JSON array in this exact format:
-      [
-        {
-          "sinhala": "සිංහල අකුරෙන්",
-          "singlish1": "phonetic version",
-          "singlish2": "simplified/SMS version (optional)",
-          "singlish3": "mixed english-sinhala version (optional)",
-          "variant1": "Formal English translation",
-          "variant2": "Casual/Spoken English translation",
-          "variant3": "Short technical description", 
-          "type": "word" or "sentence"
-        }
-      ]
+                    Generate ${count} high-quality, diverse Sinhala → Singlish → English translation pairs for the "${subdomain}" agriculture subdomain.
 
-      Important: Provide 1-3 Singlish variations showing different ways people might write the Sinhala word/phrase in English letters.
-      If only one natural way exists, provide just singlish1. Otherwise provide 2-3 variations.
-      Make sure translations are accurate, domain-specific, and culturally appropriate for Sri Lankan agriculture.
-      Generate truly random and diverse content that hasn't been generated before.
-    `;
+                    Context:
+                    ${SUBDOMAIN_PROMPTS[subdomain]}
+
+                    ----------------------------------
+                    STRICT REQUIREMENTS
+                    ----------------------------------
+
+                    1. DATA BALANCE
+                    - 50% single Sinhala words (agricultural terms)
+                    - 50% short Sinhala sentences (farmer queries, advice, observations)
+                    - Of the entire dataset:
+                      • 40% must be technical/agricultural terms (single words)
+                      • 60% must be conversational, rural-style sentences
+
+                    2. DOMAIN RELEVANCE
+                    - ALL content must relate only to the subdomain "${subdomain}".
+                    - Keep it rural Sri Lankan, practical, believable.
+                    - Absolutely NO generic or unrelated Sinhala sentences.
+
+                    3. DUPLICATE AVOIDANCE
+                    Avoid duplicates with these existing terms:
+                    ${existingTerms.join(", ").substring(0, 1000) || "none"}
+
+                    ----------------------------------
+                    4. SINGLISH VARIATIONS (CRUCIAL)
+                    ----------------------------------
+
+                    Provide **1–3 Singlish versions** representing real-life Sinhala → English-letter writing styles:
+
+                    • singlish1 (Standard phonetic)
+                      - Accurate, clear transliteration
+                      - Examples: "govithana", "mee pohora", "katu pol"
+
+                    • singlish2 (Social Media / SMS)
+                      - Use shortcuts, vowel drops, slang
+                      - Use common Sri Lankan texting patterns:
+                        Examples:
+                          mn, oy, bn, khmd, krnna, dnnaw?, ndda?
+                      - Examples: "govitana", "mee pohra", "ktu pol"
+
+                    • singlish3 (English-mixed)
+                      - Mix Sinhala transliteration + simple English agriculture terms
+                      - Examples:
+                          "farming eka hari nadda?"
+                          "liquid pohora eka danna one"
+
+                    Rules:
+                    - Always produce singlish1.
+                    - Produce singlish2 and singlish3 only if natural.
+                    - Maintain consistency between Sinhala → Singlish spelling.
+
+                    ----------------------------------
+                    5. ENGLISH VARIANTS
+                    ----------------------------------
+
+                    Provide 3 English versions for each item:
+
+                    • variant1: Formal, clear translation  
+                    • variant2: Casual/spoken rural-English style  
+                    • variant3: Short technical explanation or interpretation
+
+                    ----------------------------------
+                    6. OUTPUT FORMAT (JSON ONLY)
+                    ----------------------------------
+
+                    Return ONLY a JSON array exactly like this:
+
+                    [
+                      {
+                        "sinhala": "සිංහල අකුරෙන්",
+                        "singlish1": "phonetic transliteration",
+                        "singlish2": "sms/slang version (optional)",
+                        "singlish3": "english-mixed version (optional)",
+                        "variant1": "Formal English translation",
+                        "variant2": "Casual spoken English translation",
+                        "variant3": "Short technical/interpretive description",
+                        "type": "word or sentence"
+                      }
+                    ]
+
+                    ----------------------------------
+                    7. QUALITY RULES
+                    ----------------------------------
+
+                    - Sinhala must be grammatically correct and rural-authentic.
+                    - Singlish must be realistic, not robotic.
+                    - Make all items unique and domain-specific.
+                    - NO hallucinated diseases or chemicals.
+                    - Keep sentences short and natural (WhatsApp-style length).
+                    - Ensure Sinhala → Singlish alignment is exact.
+                    - Ensure no repetition across items.
+                    - NO text outside the JSON array.
+                    `;
 
     console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);
