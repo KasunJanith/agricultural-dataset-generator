@@ -196,11 +196,21 @@ These are needed to:
 - Study literal vs. natural vs. contextual translations.
 - Evaluate how well the model preserves meaning, intent, and domain-specific info.
 
-6. AVOIDING DUPLICATES
-Do NOT repeat Sinhala items already existing for this subdomain:
+6. AVOIDING EXACT DUPLICATES (BUT REUSE VOCABULARY IS OK)
+Do NOT repeat the exact same full Sinhala sentence or word that already exists
+for this subdomain:
 ${existingTerms.join(', ').substring(0, 800) || 'none'}
 
-Ensure new Sinhala items are semantically and lexically distinct.
+HOWEVER:
+- You MAY reuse the same agricultural words (e.g., "පොහොර", "වී", "කෘමිනාශක")
+  inside NEW sentences with different structures, contexts, or intents.
+- You MAY generate multiple different sentences about the same concept
+  (e.g., fertilizer, pests, irrigation) as long as the full Sinhala text is not
+  an exact duplicate of an existing record.
+
+In summary:
+- Avoid exact duplicate Sinhala strings.
+- Reusing the same vocabulary in new, varied sentences and phrases is GOOD and encouraged.
 
 === OUTPUT FORMAT (STRICT) ===
 
@@ -233,9 +243,9 @@ CONSTRAINTS:
 Example 1 (sentence):
 {
   "sinhala": "මගේ වී වගාවේ කොළ පැහැයෙන් කහ වීමක් තියෙනවා, මේක මොන රෝගයක් විය හැකිද?",
-  "singlish1": "mage wi wagave kol paheyen kahawima thiyenawa, meka mon rogayak viya heki da?",
-  "singlish2": "mage wi wagawe kola kahawima thiyenawa meka mona rogak vedi da?",
-  "singlish3": "The leaves in my rice paddy are turning yellow, what disease could this be?",
+  "singlish1": "mage wee wagawe kola paheyen kaha weemak thiyenawa, meka mona rogayak viya heki da?",
+  "singlish2": "mge wi wgawe kola pahyen kha wimak thyenw mek mona rogayak viya heki d?",
+  "singlish3": "mage paddy eke leaves kaha wela thiyenawa, meka mona disease ekakda?",
   "variant1": "The leaves in my paddy field are turning yellow. What disease could this be?",
   "variant2": "The leaves in my rice field are turning yellow. What disease might be causing it?",
   "variant3": "A farmer is asking about a possible rice disease because the paddy leaves are turning yellow in the field.",
