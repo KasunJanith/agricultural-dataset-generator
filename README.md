@@ -1,25 +1,25 @@
 # 🌱 Agricultural Translation Dataset Generator
 
-A full-stack web application that automatically generates Sinhala agricultural terms and sentences with multiple Singlish variations and English translations using **Groq AI (Llama 3.3 70B)**.
+A full-stack web application that automatically generates Sinhala agricultural terms and sentences with multiple Singlish variations and English translations using **OpenAI GPT-5.1**.
 
 ## Features
 
-- 🤖 **AI-Powered Generation**: Uses Groq's Llama 3.3 70B for ultra-fast, high-quality Sinhala generation
-- ⚡ **Lightning Fast**: 10x faster than traditional APIs (~800 tokens/sec)
-- 🔄 **Multiple Variations**: Generates 1-3 Singlish variations and 3 English translation variants
+- 🤖 **AI-Powered Generation**: Uses OpenAI's GPT-5.1 for advanced multilingual Sinhala-English translation
+- 🎯 **High Quality**: State-of-the-art language model with excellent Sinhala support
+- 🔄 **Multiple Variations**: Generates 1-3 Singlish romanizations and 3 English translation variants
 - 🌾 **10 Agricultural Subdomains**: Crop cultivation, livestock, soil science, pest management, and more
 - 📊 **Statistics Dashboard**: Track dataset growth across different subdomains
 - 💾 **SQLite Database**: Persistent storage with duplicate detection
 - 📥 **CSV Export**: Export filtered datasets for machine learning applications
 - 🎨 **Modern UI**: Responsive design with real-time updates
-- 🆓 **Generous Free Tier**: 14,400 requests/day (720,000 records/day!)
+- 📚 **Research Ready**: Perfect for training translation and transliteration models
 
 ## Tech Stack
 
 ### Backend
 - Node.js + Express
 - SQLite3 for database
-- Groq SDK (Llama 3.3 70B Versatile)
+- OpenAI API (GPT-5.1)
 - CORS enabled
 
 ### Frontend

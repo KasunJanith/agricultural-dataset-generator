@@ -109,53 +109,61 @@ app.post('/api/generate-batch', async (req, res) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });
+    });    const prompt = `Generate ${count} high-quality Sinhala agricultural translation pairs for the "${subdomain}" subdomain.
 
-    const prompt = `You are simulating REAL Sri Lankan farmers speaking informally.
+Context: ${SUBDOMAIN_PROMPTS[subdomain]}
 
-Generate ${count} agricultural utterances for subdomain: ${subdomain}
+Requirements:
+1. Generate a balanced mix of 50% words and 50% sentences related to ${subdomain}
+2. Content must be authentic Sri Lankan agricultural terminology and natural farmer speech
+3. Avoid duplicates with existing terms: ${existingTerms.join(', ').substring(0, 800) || 'none'}
 
-STRICT RULES:
-1. Sinhala must be INFORMAL, SPOKEN, sometimes grammatically incorrect
-2. Avoid textbook Sinhala terms unless farmers actually use them
-3. Include hesitation words, particles, and emotions:
-   examples: "නේද", "ද", "එකනේ", "අනේ", "කොහොමද", "මට හිතෙන්නෙ"
-4. 60% sentences, 40% single or compound words
-5. Sinhala sentences should sound like WhatsApp messages or face-to-face speech
+For each item, provide:
+- "sinhala": Sinhala text in Unicode script (authentic agricultural term or natural sentence)
+- "singlish1": Standard romanization (e.g., "govithana")
+- "singlish2": Casual SMS/chat style (e.g., "govitana", optional if no natural variation)
+- "singlish3": English-mixed style (e.g., "farming eka", optional if no natural variation)
+- "variant1": Formal English translation
+- "variant2": Casual/conversational English translation
+- "variant3": Technical or contextual English explanation
+- "type": "word" or "sentence"
 
-For EACH item provide:
-- sinhala_informal (Sinhala script, informal)
-- singlish_raw (VERY noisy, SMS-style, spelling mistakes allowed)
-- singlish_alt (slightly cleaner)
-- singlish_mixed (English + Singlish mix)
-- english_intent (what the farmer really means)
-- english_literal (close translation)
-- type: word | sentence
+Output ONLY a valid JSON array in this exact format:
+[
+  {
+    "sinhala": "ගොවිතැන",
+    "singlish1": "govithana",
+    "singlish2": "govitana",
+    "singlish3": "farming eka",
+    "variant1": "farming",
+    "variant2": "agriculture work",
+    "variant3": "agricultural cultivation",
+    "type": "word"
+  }
+]
 
-IMPORTANT:
-• Do NOT explain
-• Do NOT sound academic
-• Make it feel like real farmers talking to an agri officer
-• Output ONLY valid JSON
-`;
+Rules:
+- Always provide singlish1, variant1, variant2, variant3, and type
+- Only include singlish2 and singlish3 if natural variations exist
+- Ensure accurate Sinhala spelling and realistic translations
+- Make content diverse and domain-specific
+- NO explanations, NO markdown, ONLY valid JSON array`;
 
     console.log(`Generating ${count} items for subdomain: ${subdomain}`);
-    console.log(`Existing terms count: ${existingTerms.length}`);
-
-    const chatCompletion = await openai.chat.completions.create({
+    console.log(`Existing terms count: ${existingTerms.length}`);    const chatCompletion = await openai.chat.completions.create({
       messages: [
         {
           role: 'system',
-          content: 'You are an expert Sri Lankan agricultural linguist and translator. You MUST respond with ONLY a valid JSON array, no other text or explanation.'
+          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with valid JSON arrays, no explanations.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      model: 'gpt-5', // Latest GPT-5 model
-      temperature: 0.9,
-      max_completion_tokens: 8000
+      model: 'gpt-5.1', // GPT-5.1 model for advanced multilingual support
+      temperature: 0.85,
+      max_completion_tokens: 10000
     });
       const text = chatCompletion.choices[0]?.message?.content || '[]';
     console.log("Raw OpenAI response received");

@@ -133,14 +133,13 @@ function App() {
   const filteredSubdomain = selectedSubdomainFilter || 'All Subdomains'
 
   return (
-    <div className="container">
-      <div className="header">
+    <div className="container">      <div className="header">
         <h1>🌱 Agricultural Translation Dataset Generator</h1>
-        <p>Automatically generate random Sinhala agricultural terms and sentences with English translations for machine learning</p>
+        <p>Generate high-quality Sinhala-English agricultural translation datasets using GPT-5.1 for machine learning research</p>
         <div style={{ marginTop: '10px' }}>
           Server Status: <span className="health-status">{serverHealth}</span>
           <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
-            Environment: {process.env.NODE_ENV || 'development'}
+            Environment: {process.env.NODE_ENV || 'development'} | Model: GPT-5.1
           </span>
         </div>
       </div>
@@ -172,10 +171,10 @@ function App() {
         </button>        <div className="stats-info">
           <p><strong>📝 How it works:</strong> 
           <br/>• Select an agricultural subdomain and click "Generate 50 Random Records"
-          <br/>• The system uses OpenAI GPT-4o-mini to generate random Sinhala words/sentences with translations
+          <br/>• The system uses OpenAI GPT-5.1 to generate high-quality Sinhala agricultural terms with translations
           <br/>• Automatically checks for duplicates and ensures unique content
-          <br/>• Generates 1-3 Singlish variations (different ways to romanize) and 3 English translation variants per term
-          <br/>• Data is saved in SQLite database and can be exported as CSV</p>
+          <br/>• Generates 1-3 Singlish romanization variations and 3 English translation variants per term
+          <br/>• Data is saved in SQLite database and can be exported as CSV for ML training</p>
         </div>
       </div>
 
@@ -223,11 +222,10 @@ function App() {
           </div>
         </div>
       )}      <div className="dataset-table">
-        {datasets.length === 0 ? (
-          <div className="loading">
+        {datasets.length === 0 ? (          <div className="loading">
             <h3>No datasets generated yet! 🚀</h3>
             <p>Select a subdomain and click "Generate 50 Random Records" to start building your agricultural translation dataset.</p>
-            <p>Each generation creates 50 new unique records with Sinhala text, 1-3 Singlish variations, and three English translation variants.</p>
+            <p>Each generation creates 50 unique records using GPT-5.1: Sinhala text, 1-3 Singlish romanizations, and 3 English translation variants—perfect for training multilingual NLP models.</p>
           </div>
         ) : (
           <>
