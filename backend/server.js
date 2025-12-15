@@ -109,45 +109,162 @@ app.post('/api/generate-batch', async (req, res) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });    const prompt = `Generate ${count} high-quality Sinhala agricultural translation pairs for the "${subdomain}" subdomain.
+    });   const prompt = `You are generating synthetic training data for an mT5-based
+Sinhala→English translation model.
 
-Context: ${SUBDOMAIN_PROMPTS[subdomain]}
+=== RESEARCH CONTEXT ===
+This data will be used in an MSc research project with the aim:
+- To develop a machine-learning based translation model that accurately translates
+  INFORMAL Sinhala / Singlish agricultural content into English, while preserving
+  meaning, intent, and domain-specific agricultural information.
 
-Requirements:
-1. Generate a balanced mix of 50% words and 50% sentences related to ${subdomain}
-2. Content must be authentic Sri Lankan agricultural terminology and natural farmer speech
-3. Avoid duplicates with existing terms: ${existingTerms.join(', ').substring(0, 800) || 'none'}
+The study focuses on:
+- Informal farmer communication (WhatsApp, SMS, Facebook, voice-to-text style)
+- Dialectal variations, spelling inconsistencies, and mixed Sinhala–English
+- Domain-specific agricultural jargon and practical farming scenarios
+- Limitations of tools like Google Translate on informal agricultural text
+- Low-resource machine translation for Sinhala in a specialized domain
 
-For each item, provide:
-- "sinhala": Sinhala text in Unicode script (authentic agricultural term or natural sentence)
-- "singlish1": Standard romanization (e.g., "govithana")
-- "singlish2": Casual SMS/chat style (e.g., "govitana", optional if no natural variation)
-- "singlish3": English-mixed style (e.g., "farming eka", optional if no natural variation)
-- "variant1": Formal English translation
-- "variant2": Casual/conversational English translation
-- "variant3": Technical or contextual English explanation
-- "type": "word" or "sentence"
+=== YOUR TASK ===
+Generate ${count} diverse Sinhala/Singlish → English translation pairs
+for the agricultural subdomain: "${subdomain}"
 
-Output ONLY a valid JSON array in this exact format:
-[
-  {
-    "sinhala": "ගොවිතැන",
-    "singlish1": "govithana",
-    "singlish2": "govitana",
-    "singlish3": "farming eka",
-    "variant1": "farming",
-    "variant2": "agriculture work",
-    "variant3": "agricultural cultivation",
-    "type": "word"
-  }
-]
+Domain context for this subdomain:
+${SUBDOMAIN_PROMPTS[subdomain]}
 
-Rules:
-- Always provide singlish1, variant1, variant2, variant3, and type
-- Only include singlish2 and singlish3 if natural variations exist
-- Ensure accurate Sinhala spelling and realistic translations
-- Make content diverse and domain-specific
-- NO explanations, NO markdown, ONLY valid JSON array`;    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
+These pairs will be used to:
+- Train and evaluate an mT5 model tailored to informal Sinhala agricultural content
+- Study linguistic challenges in Sinhala agricultural expressions
+- Evaluate how well translations preserve meaning, intent, and domain knowledge
+
+=== LINGUISTIC & STRUCTURAL REQUIREMENTS ===
+
+1. INFORMAL AGRICULTURAL LANGUAGE (CORE FOCUS)
+- Simulate REAL farmer queries and messages, not textbook language.
+- Use:
+  - Dialectal forms and rural speech patterns.
+  - Spelling inconsistencies and typos.
+  - Transliterated Sinhala written in Latin script (“Singlish”).
+  - Mixed Sinhala–English forms common in chats and SMS.
+
+Examples of patterns to use in Singlish:
+- SMS / chat shortcuts: "mn" (මම), "oy" (ඔයා), "bn" (බන්),
+  "ndda" (නේද), "krnna" (කරන්න), "thiyenne" ( තියෙන ), "nane" ( නෑනේ )
+- Spelling variations:
+  "govithana" / "govitana" / "govithenna"
+  "pohora" / "pohra" / "pohar"
+- Mixed English:
+  "fertilizer eka danna one",
+  "spray ekak denne kohomada?",
+  "tractor eka service karanna puluwanda?"
+
+2. DOMAIN-SPECIFIC AGRICULTURAL CONTENT
+- Cover practical farmer needs in ${subdomain}, such as:
+  - Pests, diseases, fertilizer, irrigation, soil, harvesting, machinery,
+    organic methods, storage, etc. (depending on the subdomain).
+- Include:
+  - Questions to extension officers / experts.
+  - Descriptions of field problems (leaf colour, insects, yield issues).
+  - Requests for advice on pesticide/fertilizer dosage and timing.
+  - Misconceptions or typical farmer mistakes (for realistic intent).
+
+3. DATA MIX (TYPE DISTRIBUTION)
+- Around 60% items: SENTENCES (queries, complaints, observations, instructions).
+- Around 40% items: WORDS or SHORT PHRASES (terms, collocations).
+- Vary sentence length (5–25 words).
+- Include:
+  - Questions (with ?)
+  - Commands/requests
+  - Statements / descriptions
+
+4. TRANSLATION QUALITY & INTENT
+For each item:
+- Sinhala (Unicode) must sound natural for Sri Lankan farmers.
+- English variants must:
+  - Preserve factual meaning.
+  - Preserve user intent (asking, complaining, requesting advice, etc.).
+  - Preserve domain-specific information (crop, pest, chemical, timing).
+
+5. RESEARCH-DRIVEN VARIANTS
+Each item must include:
+- variant1: Direct, fairly literal English translation (can be slightly rigid).
+- variant2: Natural conversational English as an agricultural advisor would say.
+- variant3: English explanation with domain context
+  (e.g., what the farmer is really asking, including crop, problem, and intent).
+
+These are needed to:
+- Study literal vs. natural vs. contextual translations.
+- Evaluate how well the model preserves meaning, intent, and domain-specific info.
+
+6. AVOIDING DUPLICATES
+Do NOT repeat Sinhala items already existing for this subdomain:
+${existingTerms.join(', ').substring(0, 800) || 'none'}
+
+Ensure new Sinhala items are semantically and lexically distinct.
+
+=== OUTPUT FORMAT (STRICT) ===
+
+Output ONLY a valid JSON array. No markdown, no comments, no extra text.
+
+Each item in the array MUST have this structure:
+
+{
+  "sinhala": "සිංහල Unicode text (informal farmer style or term)",
+  "singlish1": "Primary informal Singlish form (required)",
+  "singlish2": "Alternative spelling / SMS style (optional, if natural)",
+  "singlish3": "Mixed Sinhala-English form (optional, if natural)",
+  "variant1": "Direct English translation (literal focus)",
+  "variant2": "Natural English (how an expert would actually say it)",
+  "variant3": "English explanation capturing intent and agricultural context",
+  "type": "word" or "sentence"
+}
+
+CONSTRAINTS:
+- "sinhala" must be in Sinhala Unicode, not Latin.
+- "singlish1" MUST always be provided.
+- "variant1", "variant2", "variant3", and "type" MUST always be provided.
+- "singlish2" and "singlish3" ONLY if realistic variants exist.
+- type:
+  - "word" for single terms / short phrases (1–3 words)
+  - "sentence" for longer queries / statements
+
+=== GOOD EXAMPLES (STYLE, NOT TO BE COPIED DIRECTLY) ===
+
+Example 1 (sentence):
+{
+  "sinhala": "මගේ වී වගාවේ කොළ පැහැයෙන් කහ වීමක් තියෙනවා, මේක මොන රෝගයක් විය හැකිද?",
+  "singlish1": "mage wi wagave kol paheyen kahawima thiyenawa, meka mon rogayak viya heki da?",
+  "singlish2": "mage wi wagawe kola kahawima thiyenawa meka mona rogak vedi da?",
+  "singlish3": "The leaves in my rice paddy are turning yellow, what disease could this be?",
+  "variant1": "The leaves in my paddy field are turning yellow. What disease could this be?",
+  "variant2": "The leaves in my rice field are turning yellow. What disease might be causing it?",
+  "variant3": "A farmer is asking about a possible rice disease because the paddy leaves are turning yellow in the field.",
+  "type": "sentence"
+}
+
+Example 2 (word/phrase):
+{
+  "sinhala": "කෘමිනාශක",
+  "singlish1": "kruminaashaka ",
+  "singlish2": "kruminashaka",
+  "singlish3": "pesticide eka",
+  "variant1": "pesticide",
+  "variant2": "insecticide",
+  "variant3": "chemical used to kill pests",
+  "type": "word"
+}
+
+=== BAD EXAMPLES (AVOID) ===
+- Overly formal academic Sinhala (e.g., "කෘමිනාශක ඝනත්වය").
+- Perfectly standardized, no spelling variation, no dialect, no informality.
+- Pure general-domain content with no agricultural relevance.
+- Any output that is not pure JSON.
+
+=== FINAL INSTRUCTIONS ===
+- Generate EXACTLY ${count} items.
+- Make content diverse across different farming problems and terms in "${subdomain}".
+- Focus on realistic informal farmer language + accurate domain-specific English.
+- Do NOT output anything except the JSON array.`;    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);    const chatCompletion = await openai.chat.completions.create({
       messages: [
         {
