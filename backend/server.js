@@ -161,7 +161,7 @@ Rules:
           content: prompt
         }
       ],
-      model: 'gpt-5.1', // GPT-5.1 model for advanced multilingual support
+      model: 'gpt-5', // GPT-5 model for advanced multilingual support
       temperature: 0.85,
       max_completion_tokens: 10000
     });

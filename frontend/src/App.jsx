@@ -139,7 +139,7 @@ function App() {
         <div style={{ marginTop: '10px' }}>
           Server Status: <span className="health-status">{serverHealth}</span>
           <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
-            Environment: {process.env.NODE_ENV || 'development'} | Model: GPT-5.1
+            Environment: {process.env.NODE_ENV || 'development'} | Model: GPT-5
           </span>
         </div>
       </div>
