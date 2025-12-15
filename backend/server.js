@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import sqlite3 from 'sqlite3';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,14 +15,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Get Gemini API key from environment
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-  console.error('GEMINI_API_KEY environment variable is required');
+// Get OpenAI API key from environment
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+if (!OPENAI_API_KEY) {
+  console.error('OPENAI_API_KEY environment variable is required');
   process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // CORS configuration for production
 app.use(cors({
@@ -103,129 +103,94 @@ app.post('/api/generate-batch', async (req, res) => {
     
     if (!subdomain) {
       return res.status(400).json({ error: 'Subdomain is required' });
-    }
-
-    // Get existing Sinhala terms from database to avoid duplicates
+    }    // Get existing Sinhala terms from database to avoid duplicates
     const existingTerms = await new Promise((resolve, reject) => {
       db.all("SELECT sinhala FROM datasets WHERE subdomain = ?", [subdomain], (err, rows) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });    const prompt = `
-                    Generate ${count} high-quality, diverse Sinhala → Singlish → English translation pairs for the "${subdomain}" agriculture subdomain.
+    });
 
-                    Context:
-                    ${SUBDOMAIN_PROMPTS[subdomain]}
+    const prompt = `You are simulating REAL Sri Lankan farmers speaking informally.
 
-                    ----------------------------------
-                    STRICT REQUIREMENTS
-                    ----------------------------------
+Generate ${count} agricultural utterances for subdomain: ${subdomain}
 
-                    1. DATA BALANCE
-                    - 50% single Sinhala words (agricultural terms)
-                    - 50% short Sinhala sentences (farmer queries, advice, observations)
-                    - Of the entire dataset:
-                      • 40% must be technical/agricultural terms (single words)
-                      • 60% must be conversational, rural-style sentences
+STRICT RULES:
+1. Sinhala must be INFORMAL, SPOKEN, sometimes grammatically incorrect
+2. Avoid textbook Sinhala terms unless farmers actually use them
+3. Include hesitation words, particles, and emotions:
+   examples: "නේද", "ද", "එකනේ", "අනේ", "කොහොමද", "මට හිතෙන්නෙ"
+4. 60% sentences, 40% single or compound words
+5. Sinhala sentences should sound like WhatsApp messages or face-to-face speech
 
-                    2. DOMAIN RELEVANCE
-                    - ALL content must relate only to the subdomain "${subdomain}".
-                    - Keep it rural Sri Lankan, practical, believable.
-                    - Absolutely NO generic or unrelated Sinhala sentences.
+For EACH item provide:
+- sinhala_informal (Sinhala script, informal)
+- singlish_raw (VERY noisy, SMS-style, spelling mistakes allowed)
+- singlish_alt (slightly cleaner)
+- singlish_mixed (English + Singlish mix)
+- english_intent (what the farmer really means)
+- english_literal (close translation)
+- type: word | sentence
 
-                    3. DUPLICATE AVOIDANCE
-                    Avoid duplicates with these existing terms:
-                    ${existingTerms.join(", ").substring(0, 1000) || "none"}
-
-                    ----------------------------------
-                    4. SINGLISH VARIATIONS (CRUCIAL)
-                    ----------------------------------
-
-                    Provide **1–3 Singlish versions** representing real-life Sinhala → English-letter writing styles:
-
-                    • singlish1 (Standard phonetic)
-                      - Accurate, clear transliteration
-                      - Examples: "govithana", "mee pohora", "katu pol"
-
-                    • singlish2 (Social Media / SMS)
-                      - Use shortcuts, vowel drops, slang
-                      - Use common Sri Lankan texting patterns:
-                        Examples:
-                          mn, oy, bn, khmd, krnna, dnnaw?, ndda?
-                      - Examples: "govitana", "mee pohra", "ktu pol"
-
-                    • singlish3 (English-mixed)
-                      - Mix Sinhala transliteration + simple English agriculture terms
-                      - Examples:
-                          "farming eka hari nadda?"
-                          "liquid pohora eka danna one"
-
-                    Rules:
-                    - Always produce singlish1.
-                    - Produce singlish2 and singlish3 only if natural.
-                    - Maintain consistency between Sinhala → Singlish spelling.
-
-                    ----------------------------------
-                    5. ENGLISH VARIANTS
-                    ----------------------------------
-
-                    Provide 3 English versions for each item:
-
-                    • variant1: Formal, clear translation  
-                    • variant2: Casual/spoken rural-English style  
-                    • variant3: Short technical explanation or interpretation
-
-                    ----------------------------------
-                    6. OUTPUT FORMAT (JSON ONLY)
-                    ----------------------------------
-
-                    Return ONLY a JSON array exactly like this:
-
-                    [
-                      {
-                        "sinhala": "සිංහල අකුරෙන්",
-                        "singlish1": "phonetic transliteration",
-                        "singlish2": "sms/slang version (optional)",
-                        "singlish3": "english-mixed version (optional)",
-                        "variant1": "Formal English translation",
-                        "variant2": "Casual spoken English translation",
-                        "variant3": "Short technical/interpretive description",
-                        "type": "word or sentence"
-                      }
-                    ]
-
-                    ----------------------------------
-                    7. QUALITY RULES
-                    ----------------------------------
-
-                    - Sinhala must be grammatically correct and rural-authentic.
-                    - Singlish must be realistic, not robotic.
-                    - Make all items unique and domain-specific.
-                    - NO hallucinated diseases or chemicals.
-                    - Keep sentences short and natural (WhatsApp-style length).
-                    - Ensure Sinhala → Singlish alignment is exact.
-                    - Ensure no repetition across items.
-                    - NO text outside the JSON array.
-                    `;
+IMPORTANT:
+• Do NOT explain
+• Do NOT sound academic
+• Make it feel like real farmers talking to an agri officer
+• Output ONLY valid JSON
+`;
 
     console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    console.log("Raw Gemini response received");
+    const chatCompletion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert Sri Lankan agricultural linguist and translator. You MUST respond with ONLY a valid JSON array, no other text or explanation.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      model: 'gpt-5', // Latest GPT-5 model
+      temperature: 0.9,
+      max_completion_tokens: 8000
+    });
+      const text = chatCompletion.choices[0]?.message?.content || '[]';
+    console.log("Raw OpenAI response received");
     
     // Extract JSON from response
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from Gemini API. Expected JSON array.');
+    let generatedData;
+    try {
+      const parsed = JSON.parse(text);
+      // If response is wrapped in an object, try to find the array
+      if (Array.isArray(parsed)) {
+        generatedData = parsed;
+      } else if (parsed.data && Array.isArray(parsed.data)) {
+        generatedData = parsed.data;
+      } else if (parsed.items && Array.isArray(parsed.items)) {
+        generatedData = parsed.items;
+      } else {
+        // Try to find any array in the object
+        const firstArrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
+        if (firstArrayKey) {
+          generatedData = parsed[firstArrayKey];
+        } else {
+          throw new Error('No array found in response');
+        }      }
+    } catch (e) {
+      // Fallback: try to extract JSON array from text
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        throw new Error('Invalid response format from OpenAI API. Expected JSON array.');
+      }
+      generatedData = JSON.parse(jsonMatch[0]);
     }
 
-    const generatedData = JSON.parse(jsonMatch[0]);
-    console.log(`Parsed ${generatedData.length} items from response`);    // Save to database
+    console.log(`Parsed ${generatedData.length} items from response`);
+
+    // Save to database
     const stmt = db.prepare(`
       INSERT OR IGNORE INTO datasets (sinhala, singlish1, singlish2, singlish3, variant1, variant2, variant3, subdomain, type)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

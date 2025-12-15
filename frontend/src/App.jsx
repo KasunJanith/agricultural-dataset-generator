@@ -66,11 +66,12 @@ function App() {
     }
   }
 
-  const handleGenerate = async () => {
-    if (serverHealth !== 'healthy') {
+  const handleGenerate = async () => {    if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
-    }    setLoading(true)
+    }
+
+    setLoading(true)
     setError('')
     setSuccess('')
 
@@ -88,7 +89,7 @@ function App() {
       fetchDatasets(selectedSubdomainFilter)
       fetchStatistics()
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to generate translations. Check your Gemini API key.')
+      setError(err.response?.data?.error || 'Failed to generate translations. Check your OpenAI API key.')
     } finally {
       setLoading(false)
     }
@@ -168,12 +169,10 @@ function App() {
           disabled={loading || serverHealth !== 'healthy'}
         >
           {loading ? '🔄 Generating 50 Records...' : '🚀 Generate 50 Random Records'}
-        </button>
-
-        <div className="stats-info">
+        </button>        <div className="stats-info">
           <p><strong>📝 How it works:</strong> 
           <br/>• Select an agricultural subdomain and click "Generate 50 Random Records"
-          <br/>• The system uses Gemini AI to generate random Sinhala words/sentences with translations
+          <br/>• The system uses OpenAI GPT-4o-mini to generate random Sinhala words/sentences with translations
           <br/>• Automatically checks for duplicates and ensures unique content
           <br/>• Generates 1-3 Singlish variations (different ways to romanize) and 3 English translation variants per term
           <br/>• Data is saved in SQLite database and can be exported as CSV</p>

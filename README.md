@@ -1,23 +1,25 @@
 # 🌱 Agricultural Translation Dataset Generator
 
-A full-stack web application that automatically generates Sinhala agricultural terms and sentences with multiple Singlish variations and English translations using Google's Gemini AI.
+A full-stack web application that automatically generates Sinhala agricultural terms and sentences with multiple Singlish variations and English translations using **Groq AI (Llama 3.3 70B)**.
 
 ## Features
 
-- 🤖 **AI-Powered Generation**: Uses Gemini 1.5 Flash to generate authentic Sinhala agricultural terms
+- 🤖 **AI-Powered Generation**: Uses Groq's Llama 3.3 70B for ultra-fast, high-quality Sinhala generation
+- ⚡ **Lightning Fast**: 10x faster than traditional APIs (~800 tokens/sec)
 - 🔄 **Multiple Variations**: Generates 1-3 Singlish variations and 3 English translation variants
 - 🌾 **10 Agricultural Subdomains**: Crop cultivation, livestock, soil science, pest management, and more
 - 📊 **Statistics Dashboard**: Track dataset growth across different subdomains
 - 💾 **SQLite Database**: Persistent storage with duplicate detection
 - 📥 **CSV Export**: Export filtered datasets for machine learning applications
 - 🎨 **Modern UI**: Responsive design with real-time updates
+- 🆓 **Generous Free Tier**: 14,400 requests/day (720,000 records/day!)
 
 ## Tech Stack
 
 ### Backend
 - Node.js + Express
 - SQLite3 for database
-- Google Generative AI (Gemini 1.5 Flash)
+- Groq SDK (Llama 3.3 70B Versatile)
 - CORS enabled
 
 ### Frontend
@@ -32,6 +34,7 @@ agricultural-dataset-generator/
 ├── backend/
 │   ├── server.js          # Express server with API endpoints
 │   ├── datasets.db        # SQLite database (generated)
+│   ├── .env               # Environment variables (API key)
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -40,6 +43,7 @@ agricultural-dataset-generator/
 │   │   └── main.jsx       # Entry point
 │   ├── vite.config.js
 │   └── package.json
+├── GROQ-SETUP.md          # Detailed Groq setup guide
 └── render.yaml            # Render deployment configuration
 ```
 
@@ -47,7 +51,7 @@ agricultural-dataset-generator/
 
 ### Prerequisites
 - Node.js 18+ installed
-- Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
+- Groq API key ([Get one FREE here](https://console.groq.com/keys))
 
 ### Backend Setup
 
@@ -63,13 +67,16 @@ npm install
 
 3. Create `.env` file:
 ```bash
-GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 PORT=5000
+NODE_ENV=development
 ```
+
+**Get your FREE Groq API key**: https://console.groq.com/keys
 
 4. Start the backend server:
 ```bash
-npm start
+npm run dev
 ```
 
 The backend will run on `http://localhost:5000`
@@ -91,7 +98,7 @@ npm install
 npm run dev
 ```
 
-The frontend will run on `http://localhost:3000`
+The frontend will run on `http://localhost:5173`
 
 ## API Endpoints
 
