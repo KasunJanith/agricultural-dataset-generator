@@ -147,9 +147,7 @@ Rules:
 - Only include singlish2 and singlish3 if natural variations exist
 - Ensure accurate Sinhala spelling and realistic translations
 - Make content diverse and domain-specific
-- NO explanations, NO markdown, ONLY valid JSON array`;
-
-    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
+- NO explanations, NO markdown, ONLY valid JSON array`;    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);    const chatCompletion = await openai.chat.completions.create({
       messages: [
         {
@@ -162,10 +160,10 @@ Rules:
         }
       ],
       model: 'gpt-5', // GPT-5 model for advanced multilingual support
-      temperature: 0.85,
       max_completion_tokens: 10000
     });
-      const text = chatCompletion.choices[0]?.message?.content || '[]';
+    
+    const text = chatCompletion.choices[0]?.message?.content || '[]';
     console.log("Raw OpenAI response received");
     
     // Extract JSON from response
