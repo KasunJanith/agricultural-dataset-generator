@@ -158,34 +158,41 @@ Rules:
           role: 'user',
           content: prompt
         }
-      ],
-      model: 'gpt-5', // GPT-5 model for advanced multilingual support
+      ],      model: 'gpt-5.2', // GPT-5.2 model for advanced multilingual support
       max_completion_tokens: 10000
     });
-    
-    const text = chatCompletion.choices[0]?.message?.content || '[]';
+      const text = chatCompletion.choices[0]?.message?.content || '[]';
     console.log("Raw OpenAI response received");
+    console.log("Response preview:", text.substring(0, 500));
     
     // Extract JSON from response
     let generatedData;
     try {
       const parsed = JSON.parse(text);
+      console.log("JSON parsed successfully, type:", typeof parsed, "isArray:", Array.isArray(parsed));
+      
       // If response is wrapped in an object, try to find the array
       if (Array.isArray(parsed)) {
         generatedData = parsed;
       } else if (parsed.data && Array.isArray(parsed.data)) {
         generatedData = parsed.data;
+        console.log("Found array in 'data' property");
       } else if (parsed.items && Array.isArray(parsed.items)) {
         generatedData = parsed.items;
+        console.log("Found array in 'items' property");
       } else {
         // Try to find any array in the object
         const firstArrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
         if (firstArrayKey) {
           generatedData = parsed[firstArrayKey];
+          console.log(`Found array in '${firstArrayKey}' property`);
         } else {
+          console.error("No array found in response object. Keys:", Object.keys(parsed));
           throw new Error('No array found in response');
-        }      }
+        }
+      }
     } catch (e) {
+      console.log("JSON parsing failed, trying regex fallback:", e.message);
       // Fallback: try to extract JSON array from text
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
@@ -195,15 +202,18 @@ Rules:
     }
 
     console.log(`Parsed ${generatedData.length} items from response`);
+    if (generatedData.length > 0) {
+      console.log("First item sample:", JSON.stringify(generatedData[0], null, 2));
+    }
 
     // Save to database
     const stmt = db.prepare(`
       INSERT OR IGNORE INTO datasets (sinhala, singlish1, singlish2, singlish3, variant1, variant2, variant3, subdomain, type)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    let savedCount = 0;
+    `);    let savedCount = 0;
     const savedItems = [];
+    let duplicateCount = 0;
+    let errorCount = 0;
 
     for (const item of generatedData) {
       await new Promise((resolve, reject) => {
@@ -219,7 +229,8 @@ Rules:
           item.type || (item.sinhala.split(' ').length > 2 ? 'sentence' : 'word')
         ], function(err) {
           if (err) {
-            console.error('Database error for item:', item.sinhala, err);
+            console.error('Database error for item:', item.sinhala, err.message);
+            errorCount++;
             resolve();
           } else if (this.changes > 0) {
             savedCount++;
@@ -230,6 +241,8 @@ Rules:
             });
             resolve();
           } else {
+            console.log('Duplicate skipped:', item.sinhala);
+            duplicateCount++;
             resolve();
           }
         });
@@ -238,7 +251,8 @@ Rules:
 
     stmt.finalize();
     
-    console.log(`Saved ${savedCount} new items, ${generatedData.length - savedCount} duplicates skipped`);
+    console.log(`Saved ${savedCount} new items, ${duplicateCount} duplicates skipped, ${errorCount} errors`);
+    console.log(`Total generated: ${generatedData.length}, Saved: ${savedCount}, Duplicates: ${duplicateCount}, Errors: ${errorCount}`);
     
     res.json({
       generated: savedCount,
