@@ -147,16 +147,22 @@ These pairs will be used to:
   - Transliterated Sinhala written in Latin script (“Singlish”).
   - Mixed Sinhala–English forms common in chats and SMS.
 
-Examples of patterns to use in Singlish:
-- SMS / chat shortcuts: "mn" (මම), "oy" (ඔයා), "bn" (බන්),
-  "ndda" (නැද්ද), "krnna" (කරන්න), "thiyenne" ( තියෙන ), "nane" ( නෑනේ )
-- Spelling variations:
-  "govithana" / "govitana" / "govithenna"
-  "pohora" / "pohra" / "pohar"
-- Mixed English:
-  "fertilizer eka danna one",
-  "spray ekak denne kohomada?",
-  "tractor eka service karanna puluwanda?"
+Examples of Singlish patterns to use:
+
+SINGLISH1 (ALWAYS required - primary romanization):
+  - Full romanization: "pohora danne kohomada?", "wee wagawa", "govithana"
+  
+SINGLISH2 (Generate when natural SMS shortcuts exist):
+  - SMS abbreviations: "mn" (මම), "oy" (ඔයා), "bn" (බන්)
+  - Shortened forms: "krnna" (කරන්න), "thiyenne" (තියෙන), "nane" (නෑනේ)
+  - Vowel drops: "kewd" (කේවද), "kohmd" (කොහොමද), "dann" (දාන්න)
+  - Common shortcuts: "ndda" (නැද්ද), "ekak" → "ekk", "karanna" → "krnna"
+  - Spelling variations: "govitana" (vs govithana), "pohra" (vs pohora)
+  
+SINGLISH3 (Only if natural mixed Sinhala-English form exists):
+  - Mixed English: "fertilizer eka danna one", "spray ekak denne kohomada?"
+  - Code-switching: "tractor eka service karanna puluwanda?"
+  - English nouns + Sinhala grammar: "pesticide ekak isinna", "yield eka adu wuna"
 
 === BAD EXAMPLES (AVOID THESE) ===
 Do NOT generate overly formal, academic, or complex Sinhala that farmers wouldn't actually use:
@@ -165,12 +171,22 @@ Do NOT generate overly formal, academic, or complex Sinhala that farmers wouldn'
   - "ප්‍රාථමික කෘෂි රසායනික පොහොර යෙදවීමේ කාර්යක්ෂම ක්‍රමවේදයන්"
   - "කෘෂි උපදේශන සේවා ලබා ගැනීම සඳහා ඉල්ලීමක්"
 
-✓ GOOD (simple, natural, informal):
-  - "වී වගාවට පොහොර දාන්නේ කොහොමද?"
-  - "fertilizer එක දාන්න හොද වෙලාව කියන්නකො"
-  - "mn wee wagawe pohora dala thiyenne"
+❌ BAD (English words in Sinhala column - NEVER DO THIS):
+  - "fertilizer එක දාන්න හොද වෙලාව කියන්නකො" (has "fertilizer" - wrong!)
+  - "ට්‍රැක්ටර් සේවය" (has English transliteration "ට්‍රැක්ටර්" - wrong!)
+  - "spray එක දාන්න කොච්චර ml දාන්න ඕනෙ?" (has "spray" and "ml" - wrong!)
 
-Keep Sinhala SIMPLE and NATURAL - like how farmers actually speak and type!
+✓ GOOD (PURE Sinhala - simple, natural, informal):
+  - "වී වගාවට පොහොර දාන්නේ කොහොමද?" (pure Sinhala ✓)
+  - "පොහොර දාන්න හොද වෙලාව කියන්නකො" (pure Sinhala ✓)
+  - "කෘමිනාශකය ඉසින්න කොහොමද?" (pure Sinhala ✓)
+
+⚠️ CRITICAL RULE: The "sinhala" field MUST contain ONLY Sinhala Unicode script.
+- NO English words (not even "fertilizer", "spray", "tractor", "ml", etc.)
+- NO English transliterations in Sinhala script (no "ට්‍රැක්ටර්")
+- Mixed Sinhala-English forms ONLY go in "singlish3" field
+
+Keep Sinhala SIMPLE and NATURAL - but 100% PURE SINHALA SCRIPT!
 
 2. DOMAIN-SPECIFIC AGRICULTURAL CONTENT
 - Cover practical farmer needs in ${subdomain}, such as:
@@ -266,11 +282,71 @@ The structure MUST be:
   ]
 }
 
+EXAMPLES OF CORRECT SINGLISH GENERATION:
+
+Example 1 (Word with SMS shortening):
+{
+  "sinhala": "පොහොර",
+  "singlish1": "pohora",           ← ALWAYS required (full romanization)
+  "singlish2": "pohra",            ← Natural spelling variation
+  "singlish3": null,               ← No English mixing for simple word
+  "variant1": "fertilizer",
+  "type": "word"
+}
+
+Example 2 (Sentence with SMS shortcuts):
+{
+  "sinhala": "පොහොර දාන්නේ කොහොමද?",
+  "singlish1": "pohora danne kohomada?",  ← ALWAYS required
+  "singlish2": "pohora dann kohomda?",   ← SMS shortcuts: "danne"→"dann", "kohomada"→"kohomda"
+  "singlish3": "fertilizer eka danna kohomada?", ← Mixed English
+  "variant1": "How to apply fertilizer?",
+  "type": "sentence"
+}
+
+Example 3 (Already short, no singlish2 needed):
+{
+  "sinhala": "වී",
+  "singlish1": "wee",              ← ALWAYS required
+  "singlish2": null,               ← Already very short, no natural shortening
+  "singlish3": null,               ← No English mixing
+  "variant1": "rice/paddy",
+  "type": "word"
+}
+
+Example 4 (Complex sentence with all variants):
+{
+  "sinhala": "මම වී වගාවේ පොහොර දාලා තියෙන්නේ",
+  "singlish1": "mama wee wagawe pohora dala thiyenne",  ← ALWAYS required
+  "singlish2": "mn wee wagawe pohora dala thiyenne",    ← SMS: "mama"→"mn"
+  "singlish3": "mn wee wagawe fertilizer dala thiyenne", ← Mixed English
+  "variant1": "I have applied fertilizer on the rice field",
+  "type": "sentence"
+}
+
 CONSTRAINTS:
-- "sinhala" must be in Sinhala Unicode, not Latin.
-- "singlish1" MUST always be provided.
+- "sinhala" MUST be 100% PURE Sinhala Unicode script ONLY.
+  ❌ NO English words allowed (not even common ones like "fertilizer", "spray", "tractor")
+  ❌ NO English transliterations in Sinhala script (not "ට්‍රැක්ටර්", "ෆර්ටිලයිසර්", etc.)
+  ✓ Use proper Sinhala words: පොහොර (not fertilizer), ඉසින (not spray), ට්‍රැක්ටරය becomes යන්ත්‍රය
+  
+- "singlish1" MUST ALWAYS be provided (primary romanization - full form).
+  Example: "pohora danne kohomada?", "wee wagawa", "krumi praharaya"
+  
+- "singlish2" should be provided when natural SMS-style shortcuts exist:
+  ✓ Generate if you can shorten words naturally: "kohomada" → "kohomda", "karanna" → "krnna"
+  ✓ Generate if SMS abbreviations fit: "mama" → "mn", "oyaa" → "oy"
+  ✓ Generate if vowel drops are natural: "kewada" → "kewd", "danna" → "dann"
+  ✓ Generate if common spelling variations exist: "govithana" → "govitana", "pohora" → "pohra"
+  ❌ Skip if singlish1 is already very short or no natural shortening exists
+  
+- "singlish3" ONLY if a natural mixed Sinhala-English form exists:
+  ✓ Generate when farmers commonly mix English: "fertilizer eka danna one"
+  ✓ Generate for English technical terms with Sinhala grammar: "spray ekak denne kohomada"
+  ❌ Skip if there's no common English mixing pattern for this phrase
+  
 - "variant1", "variant2", "variant3", and "type" MUST always be provided.
-- "singlish2" and "singlish3" ONLY if realistic variants exist.
+
 - type:
   - "word" for single terms / short phrases (1–3 words)
   - "sentence" for longer queries / statements
@@ -287,12 +363,12 @@ CONSTRAINTS:
       messages: [
         {
           role: 'system',
-          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with a single JSON object containing an "items" array. No explanations, no markdown. CRITICAL REQUIREMENT: You MUST generate EXACTLY 50% words/phrases (type:"word") and 50% sentences (type:"sentence"). This 50/50 distribution is MANDATORY for research validity. Count carefully and ensure equal distribution!'
+          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with a single JSON object containing an "items" array. No explanations, no markdown. CRITICAL REQUIREMENTS: 1) Generate EXACTLY 50% words (type:"word") and 50% sentences (type:"sentence"). 2) The "sinhala" field MUST be 100% pure Sinhala Unicode - NO English words or transliterations. 3) "singlish1" is ALWAYS required. 4) "singlish2" should be generated whenever natural SMS shortcuts or spelling variations exist (like "kohomada"→"kohomda", "karanna"→"krnna", "mama"→"mn"). 5) "singlish3" only if natural English-Sinhala mixing exists. Count carefully!'
         },
         {
           role: 'user',
           content: prompt
-        }      ],      model: 'gpt-5-mini',
+        }],      model: 'gpt-5-mini',
       max_completion_tokens: 16000
       // Note: gpt-5-mini only supports default temperature (1), custom values not allowed
     });
