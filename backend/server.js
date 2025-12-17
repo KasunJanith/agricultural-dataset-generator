@@ -103,7 +103,7 @@ app.post('/api/generate-batch', async (req, res) => {
     
     if (!subdomain) {
       return res.status(400).json({ error: 'Subdomain is required' });
-    }    // Get existing Sinhala terms from database to avoid duplicates
+    }// Get existing Sinhala terms from database to avoid duplicates
     const existingTerms = await new Promise((resolve, reject) => {
       db.all("SELECT sinhala FROM datasets WHERE subdomain = ?", [subdomain], (err, rows) => {
         if (err) reject(err);
@@ -149,7 +149,7 @@ These pairs will be used to:
 
 Examples of patterns to use in Singlish:
 - SMS / chat shortcuts: "mn" (මම), "oy" (ඔයා), "bn" (බන්),
-  "ndda" (නේද), "krnna" (කරන්න), "thiyenne" ( තියෙන ), "nane" ( නෑනේ )
+  "ndda" (නැද්ද), "krnna" (කරන්න), "thiyenne" ( තියෙන ), "nane" ( නෑනේ )
 - Spelling variations:
   "govithana" / "govitana" / "govithenna"
   "pohora" / "pohra" / "pohar"
@@ -157,6 +157,20 @@ Examples of patterns to use in Singlish:
   "fertilizer eka danna one",
   "spray ekak denne kohomada?",
   "tractor eka service karanna puluwanda?"
+
+=== BAD EXAMPLES (AVOID THESE) ===
+Do NOT generate overly formal, academic, or complex Sinhala that farmers wouldn't actually use:
+❌ BAD (too formal/academic):
+  - "කෘෂිකාර්මික ආර්ථික සංවර්ධනය සඳහා පාරිසරික තිරසාර ක්‍රමවේදයන්"
+  - "ප්‍රාථමික කෘෂි රසායනික පොහොර යෙදවීමේ කාර්යක්ෂම ක්‍රමවේදයන්"
+  - "කෘෂි උපදේශන සේවා ලබා ගැනීම සඳහා ඉල්ලීමක්"
+
+✓ GOOD (simple, natural, informal):
+  - "වී වගාවට පොහොර දාන්නේ කොහොමද?"
+  - "fertilizer එක දාන්න හොද වෙලාව කියන්නකො"
+  - "mn wee wagawe pohora dala thiyenne"
+
+Keep Sinhala SIMPLE and NATURAL - like how farmers actually speak and type!
 
 2. DOMAIN-SPECIFIC AGRICULTURAL CONTENT
 - Cover practical farmer needs in ${subdomain}, such as:
@@ -168,14 +182,33 @@ Examples of patterns to use in Singlish:
   - Requests for advice on pesticide/fertilizer dosage and timing.
   - Misconceptions or typical farmer mistakes (for realistic intent).
 
-3. DATA MIX (TYPE DISTRIBUTION)
-- Around 60% items: SENTENCES (queries, complaints, observations, instructions).
-- Around 40% items: WORDS or SHORT PHRASES (terms, collocations).
-- Vary sentence length (5–25 words).
-- Include:
-  - Questions (with ?)
-  - Commands/requests
-  - Statements / descriptions
+3. DATA MIX (TYPE DISTRIBUTION) - CRITICAL REQUIREMENT
+⚠️ MANDATORY 50/50 SPLIT ⚠️
+
+Out of ${count} total items, you MUST generate:
+- EXACTLY ${Math.floor(count / 2)} items with type:"word" (words/short phrases)
+- EXACTLY ${Math.ceil(count / 2)} items with type:"sentence" (full sentences)
+
+THIS IS NOT A SUGGESTION - IT IS A STRICT REQUIREMENT!
+
+WORDS/PHRASES (type:"word") - ${Math.floor(count / 2)} items needed:
+- Single agricultural terms: "පොහොර" (fertilizer), "කෘමිනාශක" (pesticide)
+- 2-3 word collocations: "කොළ පැහැය" (leaf color), "වී වගාව" (rice cultivation)
+- Technical terms: "ජල කළමනාකරණය" (water management)
+- Common farmer vocabulary
+Examples of WORDS to generate:
+  • පොහොර (pohora / pohra) - fertilizer
+  • වී වගාව (wee wagawa) - rice cultivation
+  • කෘමි ප්‍රහාරය (krumi praharaya) - pest attack
+
+SENTENCES (type:"sentence") - ${Math.ceil(count / 2)} items needed:
+- Questions: "පොහොර දාන්නේ කොහොමද?" (How to apply fertilizer?)
+- Requests: "fertilizer එක දාන්න කියන්නකො" (Please tell me how to add fertilizer)
+- Descriptions: "කොළ වලට කහ පැහැයක් එනවා" (Leaves are turning yellow)
+- Commands: "spray එක දාන්න" (Apply the spray)
+- Vary length: 5-25 words
+
+⚠️ COUNT VERIFICATION: Before submitting, verify you have ${Math.floor(count / 2)} "word" type and ${Math.ceil(count / 2)} "sentence" type items!
 
 4. TRANSLATION QUALITY & INTENT
 For each item:
@@ -214,19 +247,23 @@ In summary:
 
 === OUTPUT FORMAT (STRICT) ===
 
-Output ONLY a valid JSON array. No markdown, no comments, no extra text.
+You MUST return a single JSON object with a top-level "items" array.
+Do NOT return a bare array. Do NOT add any text before or after the JSON.
 
-Each item in the array MUST have this structure:
-
+The structure MUST be:
 {
-  "sinhala": "සිංහල Unicode text (informal farmer style or term)",
-  "singlish1": "Primary informal Singlish form (required)",
-  "singlish2": "Alternative spelling / SMS style (optional, if natural)",
-  "singlish3": "Mixed Sinhala-English form (optional, if natural)",
-  "variant1": "Direct English translation (literal focus)",
-  "variant2": "Natural English (how an expert would actually say it)",
-  "variant3": "English explanation capturing intent and agricultural context",
-  "type": "word" or "sentence"
+  "items": [
+    {
+      "sinhala": "සිංහල Unicode text (informal farmer style or term)",
+      "singlish1": "Primary informal Singlish form (required)",
+      "singlish2": "Alternative spelling / SMS style (optional, if natural)",
+      "singlish3": "Mixed Sinhala-English form (optional, if natural)",
+      "variant1": "Direct English translation (literal focus)",
+      "variant2": "Natural English (how an expert would actually say it)",
+      "variant3": "English explanation capturing intent and agricultural context",
+      "type": "word" or "sentence"
+    }
+  ]
 }
 
 CONSTRAINTS:
@@ -238,99 +275,100 @@ CONSTRAINTS:
   - "word" for single terms / short phrases (1–3 words)
   - "sentence" for longer queries / statements
 
-=== GOOD EXAMPLES (STYLE, NOT TO BE COPIED DIRECTLY) ===
-
-Example 1 (sentence):
-{
-  "sinhala": "මගේ වී වගාවේ කොළ පැහැයෙන් කහ වීමක් තියෙනවා, මේක මොන රෝගයක් විය හැකිද?",
-  "singlish1": "mage wee wagawe kola paheyen kaha weemak thiyenawa, meka mona rogayak viya heki da?",
-  "singlish2": "mge wi wgawe kola pahyen kha wimak thyenw mek mona rogayak viya heki d?",
-  "singlish3": "mage paddy eke leaves kaha wela thiyenawa, meka mona disease ekakda?",
-  "variant1": "The leaves in my paddy field are turning yellow. What disease could this be?",
-  "variant2": "The leaves in my rice field are turning yellow. What disease might be causing it?",
-  "variant3": "A farmer is asking about a possible rice disease because the paddy leaves are turning yellow in the field.",
-  "type": "sentence"
-}
-
-Example 2 (word/phrase):
-{
-  "sinhala": "කෘමිනාශක",
-  "singlish1": "kruminaashaka ",
-  "singlish2": "kruminashaka",
-  "singlish3": "pesticide eka",
-  "variant1": "pesticide",
-  "variant2": "insecticide",
-  "variant3": "chemical used to kill pests",
-  "type": "word"
-}
-
-=== BAD EXAMPLES (AVOID) ===
-- Overly formal academic Sinhala (e.g., "කෘමිනාශක ඝනත්වය").
-- Perfectly standardized, no spelling variation, no dialect, no informality.
-- Pure general-domain content with no agricultural relevance.
-- Any output that is not pure JSON.
-
 === FINAL INSTRUCTIONS ===
-- Generate EXACTLY ${count} items.
-- Make content diverse across different farming problems and terms in "${subdomain}".
-- Focus on realistic informal farmer language + accurate domain-specific English.
-- Do NOT output anything except the JSON array.`;    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
+- Generate EXACTLY ${count} items total.
+- ⚠️ CRITICAL: ${Math.floor(count / 2)} items MUST be type:"word" and ${Math.ceil(count / 2)} items MUST be type:"sentence"
+- Put ALL items inside the "items" array of a single JSON object.
+- Output ONLY that JSON object. No markdown, no comments, no extra text.
+- Double-check your work: Count the "word" and "sentence" types before submitting!`;
+
+    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);    const chatCompletion = await openai.chat.completions.create({
       messages: [
         {
           role: 'system',
-          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with valid JSON arrays, no explanations.'
+          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with a single JSON object containing an "items" array. No explanations, no markdown. CRITICAL REQUIREMENT: You MUST generate EXACTLY 50% words/phrases (type:"word") and 50% sentences (type:"sentence"). This 50/50 distribution is MANDATORY for research validity. Count carefully and ensure equal distribution!'
         },
         {
           role: 'user',
           content: prompt
-        }
-      ],      model: 'gpt-5.2', // GPT-5.2 model for advanced multilingual support
-      max_completion_tokens: 10000
+        }      ],      model: 'gpt-5-mini',
+      max_completion_tokens: 16000
+      // Note: gpt-5-mini only supports default temperature (1), custom values not allowed
     });
-      const text = chatCompletion.choices[0]?.message?.content || '[]';
+
+    const text = chatCompletion.choices[0]?.message?.content || '{}';
     console.log("Raw OpenAI response received");
     console.log("Response preview:", text.substring(0, 500));
-    
-    // Extract JSON from response
+
+    // Normalize response: remove surrounding markdown fences if present
+    let normalizedText = text.trim();
+    if (normalizedText.startsWith('```')) {
+      normalizedText = normalizedText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
+    }
+
+    // Extract JSON from response (expecting an object with an `items` array)
     let generatedData;
     try {
-      const parsed = JSON.parse(text);
-      console.log("JSON parsed successfully, type:", typeof parsed, "isArray:", Array.isArray(parsed));
-      
-      // If response is wrapped in an object, try to find the array
-      if (Array.isArray(parsed)) {
-        generatedData = parsed;
-      } else if (parsed.data && Array.isArray(parsed.data)) {
-        generatedData = parsed.data;
-        console.log("Found array in 'data' property");
-      } else if (parsed.items && Array.isArray(parsed.items)) {
-        generatedData = parsed.items;
-        console.log("Found array in 'items' property");
+      const direct = JSON.parse(normalizedText);
+      console.log("Direct JSON.parse succeeded, keys:", Object.keys(direct));
+
+      if (Array.isArray(direct)) {
+        // Fallback if model still returns a bare array
+        generatedData = direct;
+      } else if (Array.isArray(direct.items)) {
+        generatedData = direct.items;
+        console.log("Using 'items' array from response object");
       } else {
-        // Try to find any array in the object
-        const firstArrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
+        const firstArrayKey = Object.keys(direct).find(key => Array.isArray(direct[key]));
         if (firstArrayKey) {
-          generatedData = parsed[firstArrayKey];
+          generatedData = direct[firstArrayKey];
           console.log(`Found array in '${firstArrayKey}' property`);
         } else {
-          console.error("No array found in response object. Keys:", Object.keys(parsed));
-          throw new Error('No array found in response');
+          throw new Error('No JSON array found in response object');
         }
       }
     } catch (e) {
-      console.log("JSON parsing failed, trying regex fallback:", e.message);
-      // Fallback: try to extract JSON array from text
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error('Invalid response format from OpenAI API. Expected JSON array.');
-      }
-      generatedData = JSON.parse(jsonMatch[0]);
-    }
+      console.log("Direct JSON.parse failed:", e.message);
+      console.log("Attempting regex-based array extraction");
 
-    console.log(`Parsed ${generatedData.length} items from response`);
+      const arrayMatch = normalizedText.match(/\[[\s\S]*\]/);
+      if (!arrayMatch) {
+        console.error('No JSON array found in OpenAI response text');
+        throw new Error('Invalid response format from OpenAI API. Expected JSON array');
+      }
+
+      try {
+        generatedData = JSON.parse(arrayMatch[0]);
+        console.log("Regex-based JSON array parse succeeded, length:", generatedData.length);
+      } catch (innerErr) {
+        console.error('Failed to parse extracted JSON array:', innerErr.message);
+        throw new Error('Invalid response format from OpenAI API. Expected JSON array');
+      }
+    }    console.log(`Parsed ${generatedData.length} items from response`);
     if (generatedData.length > 0) {
       console.log("First item sample:", JSON.stringify(generatedData[0], null, 2));
+    }
+
+    // Validate 50/50 word/sentence distribution
+    const wordCount = generatedData.filter(item => item.type === 'word').length;
+    const sentenceCount = generatedData.filter(item => item.type === 'sentence').length;
+    const expectedWords = Math.floor(count / 2);
+    const expectedSentences = Math.ceil(count / 2);
+    
+    console.log(`\n📊 Type Distribution Check:`);
+    console.log(`  Words: ${wordCount} (expected: ${expectedWords})`);
+    console.log(`  Sentences: ${sentenceCount} (expected: ${expectedSentences})`);
+    
+    if (wordCount !== expectedWords || sentenceCount !== expectedSentences) {
+      console.warn(`⚠️  WARNING: Type distribution is not 50/50!`);
+      console.warn(`   Please check model output. Expected ${expectedWords} words and ${expectedSentences} sentences.`);
+    } else {
+      console.log(`✅ Perfect 50/50 distribution achieved!`);
     }
 
     // Save to database

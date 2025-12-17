@@ -65,8 +65,8 @@ function App() {
       console.error('Failed to load statistics')
     }
   }
-
-  const handleGenerate = async () => {    if (serverHealth !== 'healthy') {
+  const handleGenerate = async () => {
+    if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
     }
@@ -131,15 +131,26 @@ function App() {
 
   const totalRecords = datasets.length
   const filteredSubdomain = selectedSubdomainFilter || 'All Subdomains'
-
   return (
-    <div className="container">      <div className="header">
+    <div className="container">
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loading-popup">
+            <div className="spinner"></div>
+            <h3>Generating Dataset...</h3>
+            <p>Processing with OpenAI gpt-5-mini</p>
+            <p className="loading-subtext">Generating 25 words + 25 sentences (60-90 seconds)</p>
+          </div>
+        </div>
+      )}
+      
+      <div className="header">
         <h1>🌱 Agricultural Translation Dataset Generator</h1>
-        <p>Generate high-quality Sinhala-English agricultural translation datasets using GPT-5.2 for machine learning research</p>
+        <p>Research tool for generating Sinhala-English agricultural translation datasets for mT5 model training</p>
         <div style={{ marginTop: '10px' }}>
           Server Status: <span className="health-status">{serverHealth}</span>
           <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
-            Environment: {process.env.NODE_ENV || 'development'} | Model: GPT-5.2
+            Environment: {process.env.NODE_ENV || 'development'} | Model: gpt-5-mini
           </span>
         </div>
       </div>
@@ -159,22 +170,26 @@ function App() {
               </option>
             ))}
           </select>
-        </div>
+        </div>        {error && <div className="error">❌ {error}</div>}
+        {success && <div className="success">{success}</div>}
 
-        {error && <div className="error">❌ {error}</div>}
-        {success && <div className="success">{success}</div>}        <button 
+        <button 
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}
         >
-          {loading ? '🔄 Generating 50 Records...' : '🚀 Generate 50 Random Records'}
-        </button>        <div className="stats-info">
-          <p><strong>📝 How it works:</strong> 
-          <br/>• Select an agricultural subdomain and click "Generate 50 Random Records"
-          <br/>• The system uses OpenAI GPT-5.2 to generate high-quality Sinhala agricultural terms with translations
-          <br/>• Automatically checks for duplicates and ensures unique content
-          <br/>• Generates 1-3 Singlish romanization variations and 3 English translation variants per term
-          <br/>• Data is saved in SQLite database and can be exported as CSV for ML training</p>
+          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 50 Records (25 Words + 25 Sentences)'}
+        </button>
+
+        <div className="stats-info">
+          <p><strong>📝 Research Methodology:</strong> 
+          <br/>• Select an agricultural subdomain and generate a batch of 50 training records
+          <br/>• Utilizes OpenAI gpt-5-mini (latest model with superior instruction following)
+          <br/>• Generates exactly 25 words/phrases and 25 full sentences per batch (50/50 split)
+          <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
+          <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
+          <br/>• Automatic duplicate detection based on UNIQUE(sinhala, subdomain) constraint
+          <br/>• Data stored in SQLite and exportable as CSV for mT5 model training</p>
         </div>
       </div>
 
@@ -222,10 +237,11 @@ function App() {
           </div>
         </div>
       )}      <div className="dataset-table">
-        {datasets.length === 0 ? (          <div className="loading">
-            <h3>No datasets generated yet! 🚀</h3>
-            <p>Select a subdomain and click "Generate 50 Random Records" to start building your agricultural translation dataset.</p>
-            <p>Each generation creates 50 unique records using GPT-5.2: Sinhala text, 1-3 Singlish romanizations, and 3 English translation variants—perfect for training multilingual NLP models.</p>
+        {datasets.length === 0 ? (
+          <div className="loading">
+            <h3>No datasets generated yet</h3>
+            <p>Select a subdomain above and click "Generate 50 Records" to begin.</p>
+            <p>Each batch generates 25 words/phrases and 25 sentences (50 total) for balanced training data.</p>
           </div>
         ) : (
           <>
