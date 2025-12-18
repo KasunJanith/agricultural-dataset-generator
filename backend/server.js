@@ -646,12 +646,12 @@ app.get('/api/export-csv', (req, res) => {
     query += " WHERE subdomain = ?";
     params.push(subdomain);
   }
-
   db.all(query, params, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to export data' });
     }    const headers = ['Sinhala', 'Singlish1', 'Singlish2', 'Singlish3', 'Variant1', 'Variant2', 'Variant3', 'Subdomain', 'Type'];
-    let csvContent = headers.join(',') + '\n';
+    // Add UTF-8 BOM for proper Unicode display in Excel and other applications
+    let csvContent = '\uFEFF' + headers.join(',') + '\n';
     
     rows.forEach(row => {
       const escapedRow = [

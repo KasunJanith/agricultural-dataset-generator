@@ -182,14 +182,13 @@ function App() {
         </button>
 
         <div className="stats-info">
-          <p><strong>📝 Research Methodology:</strong> 
+          <p><strong>📝 How to use the site:</strong> 
           <br/>• Select an agricultural subdomain and generate a batch of 50 training records
-          <br/>• Utilizes OpenAI gpt-5-mini (latest model with superior instruction following)
-          <br/>• Generates exactly 25 words/phrases and 25 full sentences per batch (50/50 split)
+          <br/>• Utilizes OpenAI gpt-5-mini 
           <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
           <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
           <br/>• Automatic duplicate detection based on UNIQUE(sinhala, subdomain) constraint
-          <br/>• Data stored in SQLite and exportable as CSV for mT5 model training</p>
+          <br/>• Data stored in SQLite and exportable as CSV </p>
         </div>
       </div>
 
