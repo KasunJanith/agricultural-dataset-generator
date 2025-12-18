@@ -109,7 +109,7 @@ app.post('/api/generate-batch', async (req, res) => {
         if (err) reject(err);
         else resolve(rows.map(row => row.sinhala));
       });
-    });   const prompt = `You are generating synthetic training data for an mT5-based
+    });    const prompt = `You are generating synthetic training data for an mT5-based
 Sinhala→English translation model.
 
 === RESEARCH CONTEXT ===
@@ -132,12 +132,106 @@ for the agricultural subdomain: "${subdomain}"
 Domain context for this subdomain:
 ${SUBDOMAIN_PROMPTS[subdomain]}
 
+⚠️ CRITICAL: REVERSE GENERATION APPROACH ⚠️
+To ensure accuracy and semantic alignment:
+
+STEP 1: Generate English variants FIRST (variant1, variant2, variant3)
+  - Start with agricultural concepts/questions in English
+  - Ensure they are relevant to ${subdomain}
+  - Make them realistic for farmer communication
+
+STEP 2: Generate accurate Sinhala translation matching variant1
+  - Translate variant1 into pure, natural, informal Sinhala
+  - Ensure spelling is 100% correct
+  - Use simple farmer language (not academic/formal)
+  - Double-check: Does this Sinhala accurately convey variant1's meaning?
+
+STEP 3: Generate Singlish romanizations from the Sinhala
+  - Create singlish1, singlish2, singlish3 based on the accurate Sinhala
+
+This approach ensures:
+✓ English variants are conceptually accurate (your native strength)
+✓ Sinhala matches English meaning precisely (no semantic drift)
+✓ No Sinhala spelling/word errors
+✓ Perfect semantic alignment across all fields
+
 These pairs will be used to:
 - Train and evaluate an mT5 model tailored to informal Sinhala agricultural content
 - Study linguistic challenges in Sinhala agricultural expressions
 - Evaluate how well translations preserve meaning, intent, and domain knowledge
 
-=== LINGUISTIC & STRUCTURAL REQUIREMENTS ===
+=== GENERATION WORKFLOW (FOLLOW STRICTLY) ===
+
+For EACH item you generate, follow this exact sequence:
+
+🔵 STEP 1: CREATE ENGLISH VARIANTS FIRST
+Think of a realistic agricultural concept/question for "${subdomain}":
+  
+  a) variant1: Direct, literal English translation
+     - Simple and straightforward
+     - Agricultural focus: ${SUBDOMAIN_PROMPTS[subdomain]}
+     
+  b) variant2: Natural conversational English
+     - How a farmer or agricultural advisor would actually say it
+     - More natural phrasing
+     
+  c) variant3: English with domain context/explanation
+     - What the farmer is really asking/saying
+     - Include crop, problem, intent, context
+     
+  d) type: Decide if this is a "word" (1-3 words) or "sentence" (full query/statement)
+
+🟢 STEP 2: TRANSLATE TO ACCURATE SINHALA
+Now translate variant1 into pure, natural, informal Sinhala:
+  
+  REQUIREMENTS:
+  - Must be 100% pure Sinhala Unicode (no English words/transliterations)
+  - Must accurately convey variant1's meaning (semantic alignment is critical)
+  - Use simple, informal farmer language (not academic/formal)
+  - Double-check spelling - it MUST be correct!
+  - Sound natural for Sri Lankan farmers
+  
+  EXAMPLES:
+  ✓ GOOD: "පොහොර දාන්න හොද වෙලාව කියන්නකො"
+  ✓ GOOD: "කොළ වලට කහ පැහැයක් එනවා"
+  ✓ GOOD: "වී වගාවට ජලය දෙන්නේ කොහොමද?"
+  
+  ❌ BAD: "fertilizer එක දාන්න" (has English word)
+  ❌ BAD: "කෘෂිකාර්මික ආර්ථික සංවර්ධනය" (too formal/academic)
+  ❌ BAD: Incorrect spellings or wrong words
+
+🟡 STEP 3: CREATE SINGLISH ROMANIZATIONS
+From your accurate Sinhala, generate informal romanizations:
+
+  a) singlish1 (ALWAYS required):
+     - Primary romanization of the Sinhala
+     - Full form, readable
+     Example: "pohora danna hoda welawa kiyannako"
+  
+  b) singlish2 (when natural SMS shortcuts exist):
+     - Conservative SMS-style abbreviations
+     - DON'T over-abbreviate - keep it readable!
+     - Only use shortcuts that farmers actually use
+     - Examples of acceptable shortcuts:
+       • "kohomada" → "kohomda" (common)
+       • "karanna" → "karnna" (natural vowel drop)
+       • "danna" → "dann" (natural shortening)
+       • "mama" → "mn" (very common SMS)
+       • "oyaa" → "oy" (very common SMS)
+     - Examples of UNACCEPTABLE over-abbreviation:
+       ❌ "bindnv" (too short, unreadable)
+       ❌ "gs" for "gas" (too aggressive)
+       ❌ "dvl" for "daval" (loses meaning)
+     - Rule of thumb: If you can't easily pronounce it, don't abbreviate it!
+     - Set to null if no natural shortcuts exist
+  
+  c) singlish3 (only when natural English mixing exists):
+     - Mixed Sinhala-English form
+     - Only if farmers commonly mix English for this concept
+     Examples: "fertilizer eka danna one", "spray ekak denne kohomada"
+     - Set to null if no natural mixing pattern exists
+
+=== DATA MIX (TYPE DISTRIBUTION) - CRITICAL REQUIREMENT ===
 
 1. INFORMAL AGRICULTURAL LANGUAGE (CORE FOCUS)
 - Simulate REAL farmer queries and messages, not textbook language.
@@ -360,10 +454,9 @@ CONSTRAINTS:
 
     console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);    const chatCompletion = await openai.chat.completions.create({
-      messages: [
-        {
+      messages: [        {
           role: 'system',
-          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with a single JSON object containing an "items" array. No explanations, no markdown. CRITICAL REQUIREMENTS: 1) Generate EXACTLY 50% words (type:"word") and 50% sentences (type:"sentence"). 2) The "sinhala" field MUST be 100% pure Sinhala Unicode - NO English words or transliterations. 3) "singlish1" is ALWAYS required. 4) "singlish2" should be generated whenever natural SMS shortcuts or spelling variations exist (like "kohomada"→"kohomda", "karanna"→"krnna", "mama"→"mn"). 5) "singlish3" only if natural English-Sinhala mixing exists. Count carefully!'
+          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with a single JSON object containing an "items" array. No explanations, no markdown. CRITICAL WORKFLOW: 1) Generate English variants FIRST (variant1, variant2, variant3). 2) Then translate variant1 to accurate pure Sinhala (100% correct spelling, simple informal language). 3) Then generate singlish romanizations from Sinhala. CRITICAL REQUIREMENTS: A) Generate EXACTLY 50% words (type:"word") and 50% sentences (type:"sentence"). B) "sinhala" field MUST be 100% pure Sinhala Unicode - NO English words or transliterations. C) "singlish1" is ALWAYS required. D) "singlish2" should be conservative SMS shortcuts only (DON\'T over-abbreviate - keep readable). E) "singlish3" only if natural English-Sinhala mixing exists. Count carefully!'
         },
         {
           role: 'user',
