@@ -99,7 +99,7 @@ app.get('/api/subdomains', (req, res) => {
 
 app.post('/api/generate-batch', async (req, res) => {
   try {
-    const { subdomain, count = 50 } = req.body;
+    const { subdomain, count = 200 } = req.body;
     
     if (!subdomain) {
       return res.status(400).json({ error: 'Subdomain is required' });
@@ -459,10 +459,9 @@ CONSTRAINTS:
         },
         {
           role: 'user',
-          content: prompt
-        }],      model: 'gpt-5-mini',
-      max_completion_tokens: 16000
-  
+          content: prompt        }],      model: 'gpt-5-mini',
+      max_completion_tokens: 64000
+      // Increased from 16000 to 64000 to handle 200 items (4x increase)
     });
 
     const text = chatCompletion.choices[0]?.message?.content || '{}';

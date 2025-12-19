@@ -69,16 +69,14 @@ function App() {
     if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
-    }
-
-    setLoading(true)
+    }    setLoading(true)
     setError('')
     setSuccess('')
 
     try {
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 50
+        count: 200
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -133,13 +131,12 @@ function App() {
   const filteredSubdomain = selectedSubdomainFilter || 'All Subdomains'
   return (
     <div className="container">
-      {loading && (
-        <div className="loading-overlay">
+      {loading && (        <div className="loading-overlay">
           <div className="loading-popup">
             <div className="spinner"></div>
             <h3>Generating Dataset...</h3>
             <p>Processing with OpenAI gpt-5-mini</p>
-            <p className="loading-subtext">Generating 25 words + 25 sentences (60-90 seconds)</p>
+            <p className="loading-subtext">Generating 100 words + 100 sentences (3-5 minutes)</p>
           </div>
         </div>
       )}
@@ -171,19 +168,16 @@ function App() {
             ))}
           </select>
         </div>        {error && <div className="error">❌ {error}</div>}
-        {success && <div className="success">{success}</div>}
-
-        <button 
+        {success && <div className="success">{success}</div>}        <button 
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}
         >
-          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 50 Records (25 Words + 25 Sentences)'}
+          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 200 Records (100 Words + 100 Sentences)'}
         </button>
 
         <div className="stats-info">
-          <p><strong>📝 How to use the site:</strong> 
-          <br/>• Select an agricultural subdomain and generate a batch of 50 training records
+          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 200 training records
           <br/>• Utilizes OpenAI gpt-5-mini 
           <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
           <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
