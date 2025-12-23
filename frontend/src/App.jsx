@@ -61,22 +61,24 @@ function App() {
     try {
       const response = await axios.get(`${API_BASE}/statistics`)
       setStatistics(response.data)
-    } catch (err) {
-      console.error('Failed to load statistics')
+    } catch (err) {      console.error('Failed to load statistics')
     }
   }
+
   const handleGenerate = async () => {
     if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
-    }    setLoading(true)
+    }
+
+    setLoading(true)
     setError('')
     setSuccess('')
 
     try {
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 200
+        count: 25
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -136,7 +138,7 @@ function App() {
             <div className="spinner"></div>
             <h3>Generating Dataset...</h3>
             <p>Processing with OpenAI gpt-5-mini</p>
-            <p className="loading-subtext">Generating 100 words + 100 sentences (3-5 minutes)</p>
+            <p className="loading-subtext">Generating 12-13 words + 12-13 sentences (30-45 seconds)</p>
           </div>
         </div>
       )}
@@ -172,13 +174,12 @@ function App() {
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}
-        >
-          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 200 Records (100 Words + 100 Sentences)'}
+        >          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 25 Records (12-13 Words + 12-13 Sentences)'}
         </button>
 
         <div className="stats-info">
-          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 200 training records
-          <br/>• Utilizes OpenAI gpt-5-mini 
+          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 25 training records
+          <br/>• Utilizes OpenAI gpt-5-mini
           <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
           <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
           <br/>• Automatic duplicate detection based on UNIQUE(sinhala, subdomain) constraint
