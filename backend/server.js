@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import sqlite3 from 'sqlite3';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,14 +15,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Get OpenAI API key from environment
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-if (!OPENAI_API_KEY) {
-  console.error('OPENAI_API_KEY environment variable is required');
+// Get Google Gemini API key from environment
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error('GEMINI_API_KEY environment variable is required');
   process.exit(1);
 }
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // CORS configuration for production
 app.use(cors({
@@ -99,7 +99,7 @@ app.get('/api/subdomains', (req, res) => {
 
 app.post('/api/generate-batch', async (req, res) => {
   try {
-    const { subdomain, count = 25 } = req.body;
+    const { subdomain, count = 200 } = req.body;
     
     if (!subdomain) {
       return res.status(400).json({ error: 'Subdomain is required' });
@@ -449,24 +449,58 @@ CONSTRAINTS:
 - ⚠️ CRITICAL: ${Math.floor(count / 2)} items MUST be type:"word" and ${Math.ceil(count / 2)} items MUST be type:"sentence"
 - Put ALL items inside the "items" array of a single JSON object.
 - Output ONLY that JSON object. No markdown, no comments, no extra text.
-- Double-check your work: Count the "word" and "sentence" types before submitting!`;
+- Double-check your work: Count the "word" and "sentence" types before submitting!`;    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
+    console.log(`Existing terms count: ${existingTerms.length}`);
 
-    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
-    console.log(`Existing terms count: ${existingTerms.length}`);    const chatCompletion = await openai.chat.completions.create({
-      messages: [        {
-          role: 'system',
-          content: 'You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. Respond ONLY with a single JSON object containing an "items" array. No explanations, no markdown. CRITICAL WORKFLOW: 1) Generate English variants FIRST (variant1, variant2, variant3). 2) Then translate variant1 to accurate pure Sinhala (100% correct spelling, simple informal language). 3) Then generate singlish romanizations from Sinhala. CRITICAL REQUIREMENTS: A) Generate EXACTLY 50% words (type:"word") and 50% sentences (type:"sentence"). B) "sinhala" field MUST be 100% pure Sinhala Unicode - NO English words or transliterations. C) "singlish1" is ALWAYS required. D) "singlish2" should be conservative SMS shortcuts only (DON\'T over-abbreviate - keep readable). E) "singlish3" only if natural English-Sinhala mixing exists. Count carefully!'
-        },
-        {
-          role: 'user',
-          content: prompt        }],      model: 'gpt-5-mini',
-      max_completion_tokens: 8000
-      // Reduced to 8000 for 25 items to conserve API quota
-    });
+    // Combine system and user messages for Gemini with strong JSON formatting instructions
+    const fullPrompt = `You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. 
 
-    const text = chatCompletion.choices[0]?.message?.content || '{}';
-    console.log("Raw OpenAI response received");
-    console.log("Response preview:", text.substring(0, 500));
+CRITICAL: Your response must be ONLY a valid JSON object. No text before or after the JSON. No markdown code blocks. No explanations.
+
+REQUIRED JSON FORMAT:
+{
+  "items": [
+    {
+      "sinhala": "කුඹුරු",
+      "singlish1": "kumburu",
+      "singlish2": "kumburu",
+      "singlish3": null,
+      "variant1": "paddy field",
+      "variant2": "rice field",
+      "variant3": "paddy cultivation area",
+      "type": "word"
+    }
+  ]
+}
+
+WORKFLOW: 
+1) Generate English variants FIRST (variant1, variant2, variant3)
+2) Translate variant1 to pure Sinhala (100% correct spelling, simple informal language)
+3) Generate singlish romanizations from Sinhala
+
+REQUIREMENTS:
+- Generate EXACTLY 50% words (type:"word") and 50% sentences (type:"sentence")
+- "sinhala" field MUST be 100% pure Sinhala Unicode - NO English words
+- "singlish1" is ALWAYS required
+- "singlish2" should be conservative SMS shortcuts (DON'T over-abbreviate)
+- "singlish3" only if natural English-Sinhala mixing exists (otherwise null)
+
+${prompt}
+
+REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.0 Flash with JSON mode hint
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 1,
+        maxOutputTokens: 8000,
+        responseMimeType: "application/json",
+      },
+    });const result = await model.generateContent(fullPrompt);
+    const text = result.response.text() || '{}';
+    console.log("Raw Gemini response received");
+    console.log("Response length:", text.length);
+    console.log("Response preview (first 1000 chars):", text.substring(0, 1000));
+    console.log("Response preview (last 200 chars):", text.substring(Math.max(0, text.length - 200)));
 
     // Normalize response: remove surrounding markdown fences if present
     let normalizedText = text.trim();
@@ -498,25 +532,25 @@ CONSTRAINTS:
         } else {
           throw new Error('No JSON array found in response object');
         }
-      }
-    } catch (e) {
+      }    } catch (e) {
       console.log("Direct JSON.parse failed:", e.message);
       console.log("Attempting regex-based array extraction");
+      console.log("Normalized text (full):", normalizedText);
 
       const arrayMatch = normalizedText.match(/\[[\s\S]*\]/);
       if (!arrayMatch) {
-        console.error('No JSON array found in OpenAI response text');
-        throw new Error('Invalid response format from OpenAI API. Expected JSON array');
-      }
-
-      try {
+        console.error('No JSON array found in Gemini response text');
+        console.error('Full normalized text:', normalizedText);
+        throw new Error('Invalid response format from Gemini API. Expected JSON array');
+      }      try {
         generatedData = JSON.parse(arrayMatch[0]);
         console.log("Regex-based JSON array parse succeeded, length:", generatedData.length);
       } catch (innerErr) {
         console.error('Failed to parse extracted JSON array:', innerErr.message);
-        throw new Error('Invalid response format from OpenAI API. Expected JSON array');
+        console.error('Extracted array string:', arrayMatch[0].substring(0, 500));
+        throw new Error('Invalid response format from Gemini API. Expected JSON array');
       }
-    }    console.log(`Parsed ${generatedData.length} items from response`);
+    }console.log(`Parsed ${generatedData.length} items from response`);
     if (generatedData.length > 0) {
       console.log("First item sample:", JSON.stringify(generatedData[0], null, 2));
     }
