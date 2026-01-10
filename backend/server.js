@@ -97,6 +97,41 @@ app.get('/api/subdomains', (req, res) => {
   res.json(AGRICULTURAL_SUBDOMAINS);
 });
 
+// Get recommended batch size based on token limits
+app.get('/api/token-info', (req, res) => {
+  const maxRecommendedBatchSize = Math.floor(
+    (TOKEN_CONFIG.MAX_MODEL_TOKENS / TOKEN_CONFIG.SAFETY_BUFFER) / TOKEN_CONFIG.TOKENS_PER_ITEM
+  );
+  
+  res.json({
+    tokenConfig: {
+      tokensPerItem: TOKEN_CONFIG.TOKENS_PER_ITEM,
+      safetyBuffer: TOKEN_CONFIG.SAFETY_BUFFER,
+      maxModelTokens: TOKEN_CONFIG.MAX_MODEL_TOKENS,
+    },
+    recommendations: {
+      maxBatchSize: maxRecommendedBatchSize,
+      safeBatchSize: Math.floor(maxRecommendedBatchSize * 0.8), // 80% for extra safety
+      defaultBatchSize: 200,
+    },
+    examples: [
+      { batchSize: 50, estimatedTokens: Math.ceil(50 * TOKEN_CONFIG.TOKENS_PER_ITEM * TOKEN_CONFIG.SAFETY_BUFFER) },
+      { batchSize: 100, estimatedTokens: Math.ceil(100 * TOKEN_CONFIG.TOKENS_PER_ITEM * TOKEN_CONFIG.SAFETY_BUFFER) },
+      { batchSize: 200, estimatedTokens: Math.ceil(200 * TOKEN_CONFIG.TOKENS_PER_ITEM * TOKEN_CONFIG.SAFETY_BUFFER) },
+      { batchSize: 250, estimatedTokens: Math.ceil(250 * TOKEN_CONFIG.TOKENS_PER_ITEM * TOKEN_CONFIG.SAFETY_BUFFER) },
+    ]
+  });
+});
+
+// Token allocation configuration for dynamic sizing
+const TOKEN_CONFIG = {
+  TOKENS_PER_ITEM: 200,        // Average tokens needed per generated item
+  SYSTEM_PROMPT_TOKENS: 3000,  // Approximate tokens for system prompt
+  SAFETY_BUFFER: 1.3,          // 30% safety margin (1.3 = 130% of estimate)
+  MAX_MODEL_TOKENS: 65536,     // Gemini 2.5 Flash maximum output tokens
+  WARN_THRESHOLD: 0.9,         // Warn if using >90% of model capacity
+};
+
 app.post('/api/generate-batch', async (req, res) => {
   try {
     const { subdomain, count = 200 } = req.body;
@@ -452,8 +487,43 @@ CONSTRAINTS:
 - Double-check your work: Count the "word" and "sentence" types before submitting!`;    console.log(`Generating ${count} items for subdomain: ${subdomain}`);
     console.log(`Existing terms count: ${existingTerms.length}`);
 
+    // Calculate dynamic token limit based on batch size
+    const estimatedOutputTokens = Math.ceil(
+      (count * TOKEN_CONFIG.TOKENS_PER_ITEM) * TOKEN_CONFIG.SAFETY_BUFFER
+    );
+    
+    // Use the smaller of: estimated need or model maximum
+    const dynamicMaxTokens = Math.min(estimatedOutputTokens, TOKEN_CONFIG.MAX_MODEL_TOKENS);
+    
+    // Calculate recommended maximum batch size
+    const maxRecommendedBatchSize = Math.floor(
+      (TOKEN_CONFIG.MAX_MODEL_TOKENS / TOKEN_CONFIG.SAFETY_BUFFER) / TOKEN_CONFIG.TOKENS_PER_ITEM
+    );
+    
+    console.log(`\n📊 Dynamic Token Allocation:`);
+    console.log(`  Batch size: ${count} items`);
+    console.log(`  Tokens per item: ${TOKEN_CONFIG.TOKENS_PER_ITEM} (avg)`);
+    console.log(`  Base calculation: ${count} × ${TOKEN_CONFIG.TOKENS_PER_ITEM} = ${count * TOKEN_CONFIG.TOKENS_PER_ITEM} tokens`);
+    console.log(`  Safety buffer: ${Math.round((TOKEN_CONFIG.SAFETY_BUFFER - 1) * 100)}%`);
+    console.log(`  Estimated tokens needed: ${estimatedOutputTokens}`);
+    console.log(`  Allocated maxOutputTokens: ${dynamicMaxTokens}`);
+    console.log(`  Model capacity: ${TOKEN_CONFIG.MAX_MODEL_TOKENS} (${Math.round((dynamicMaxTokens / TOKEN_CONFIG.MAX_MODEL_TOKENS) * 100)}% utilized)`);
+    
+    // Warn if approaching or exceeding token limit
+    if (estimatedOutputTokens > TOKEN_CONFIG.MAX_MODEL_TOKENS) {
+      console.warn(`\n⚠️  WARNING: Token limit exceeded!`);
+      console.warn(`   Requested: ${estimatedOutputTokens} tokens`);
+      console.warn(`   Maximum: ${TOKEN_CONFIG.MAX_MODEL_TOKENS} tokens`);
+      console.warn(`   Current batch size: ${count} items`);
+      console.warn(`   Recommended maximum: ${maxRecommendedBatchSize} items`);
+      console.warn(`   Action: Consider reducing batch size to avoid truncation.`);
+    } else if (dynamicMaxTokens > TOKEN_CONFIG.MAX_MODEL_TOKENS * TOKEN_CONFIG.WARN_THRESHOLD) {
+      console.warn(`\n⚠️  NOTICE: Approaching token limit (${Math.round((dynamicMaxTokens / TOKEN_CONFIG.MAX_MODEL_TOKENS) * 100)}%)`);
+      console.warn(`   Maximum safe batch size: ${maxRecommendedBatchSize} items`);
+    }
+
     // Combine system and user messages for Gemini with strong JSON formatting instructions
-    const fullPrompt = `You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation. 
+    const fullPrompt = `You are an expert Sri Lankan agricultural linguist specializing in Sinhala-English translation.
 
 CRITICAL: Your response must be ONLY a valid JSON object. No text before or after the JSON. No markdown code blocks. No explanations.
 
@@ -487,20 +557,21 @@ REQUIREMENTS:
 
 ${prompt}
 
-REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.5 Flash (Paid Tier 1 - 1K RPM, 1M TPM, 10K RPD)
+REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.5 Flash with dynamically calculated token limit
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 1,
-        maxOutputTokens: 65536, // Increased to maximum (was 8000 - too small for 200 items!)
+        maxOutputTokens: dynamicMaxTokens, // Dynamically calculated based on batch size!
         responseMimeType: "application/json",
       },
     });
 
-    console.log("Calling Gemini 2.5 Flash API...");
-    console.log(`Estimated tokens needed: ~${count * 180} tokens for ${count} items`);
+    console.log(`\n🚀 Calling Gemini 2.5 Flash API...`);
+    console.log(`   Model: gemini-2.5-flash`);
+    console.log(`   Max output tokens: ${dynamicMaxTokens}`);
     const result = await model.generateContent(fullPrompt);
-    console.log("Gemini API call succeeded");    const text = result.response.text() || '{}';
+    console.log("✅ Gemini API call succeeded");const text = result.response.text() || '{}';
     console.log("Raw Gemini response received");
     console.log("Response length:", text.length);
     console.log("Response preview (first 1000 chars):", text.substring(0, 1000));
