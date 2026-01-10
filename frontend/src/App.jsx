@@ -64,19 +64,20 @@ function App() {
     } catch (err) {      console.error('Failed to load statistics')
     }
   }
-
   const handleGenerate = async () => {
     if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
-    }    setLoading(true)
+    }
+    
+    setLoading(true)
     setError('')
     setSuccess('')
-
+    
     try {
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 200
+        count: 150  // Reduced from 200 to fit within token limits with conservative estimates
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -134,8 +135,7 @@ function App() {
           <div className="loading-popup">
             <div className="spinner"></div>
             <h3>Generating Dataset...</h3>
-            <p>Processing with Google Gemini 2.0 Flash</p>
-            <p className="loading-subtext">Generating 100 words + 100 sentences (2-4 minutes)</p>
+            <p>Processing with Google Gemini 2.0 Flash</p>            <p className="loading-subtext">Generating 75 words + 75 sentences (2-3 minutes)</p>
           </div>
         </div>
       )}
@@ -169,8 +169,8 @@ function App() {
         {success && <div className="success">{success}</div>}        <button 
           onClick={handleGenerate}
           className="generate-btn"
-          disabled={loading || serverHealth !== 'healthy'}
-        >          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 200 Records (100 Words + 100 Sentences)'}
+          disabled={loading || serverHealth !== 'healthy'}        >
+          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 150 Records (75 Words + 75 Sentences)'}
         </button>
 
         <div className="stats-info">
