@@ -1,4 +1,4 @@
-// Test Gemini API connection
+// Test Gemini API connection with multiple models
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
@@ -16,13 +16,15 @@ console.log('🔄 Testing Gemini API connection...\n');
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-async function testGemini() {
+async function testModel(modelName) {
   try {
+    console.log(`\n📝 Testing model: ${modelName}`);
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash-exp',
+      model: modelName,
       generationConfig: {
         temperature: 1,
         maxOutputTokens: 1000,
+        responseMimeType: "application/json",
       },
     });
 
@@ -39,17 +41,33 @@ Respond ONLY with this JSON format.`;
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     
-    console.log('✅ Gemini API Response received!\n');
-    console.log('Response:', text.substring(0, 500));
-    console.log('\n✅ Test successful! Gemini integration is working correctly.');
+    console.log(`✅ ${modelName} - Response received!`);
+    console.log('Response length:', text.length);
+    console.log('Response preview:', text.substring(0, 300));
+    return true;
     
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
-    if (error.message.includes('API key')) {
-      console.error('\n💡 Tip: Check your GEMINI_API_KEY in the .env file');
-      console.error('   Get a key at: https://aistudio.google.com/app/apikey');
-    }
+    console.error(`❌ ${modelName} - Test failed:`, error.message);
+    return false;
   }
 }
 
-testGemini();
+async function testAllModels() {
+  const modelsToTest = [
+    'gemini-2.5-flash',        // Paid Tier 1: 1K RPM, 1M TPM, 10K RPD - BEST FOR YOUR USE CASE
+    'gemini-2.5-flash-lite',   // Paid Tier 1: 4K RPM, 4M TPM, Unlimited RPD
+    'gemini-2.0-flash',        // Paid Tier 1: 2K RPM, 4M TPM, Unlimited RPD
+    'gemini-2.0-flash-exp',    // Experimental: 10 RPM only
+  ];
+  
+  console.log('Testing Gemini models with Paid Tier 1 access...\n');
+  
+  for (const modelName of modelsToTest) {
+    await testModel(modelName);
+  }
+  
+  console.log('\n✅ Testing complete!');
+  console.log('\n💡 Recommendation: Use gemini-2.5-flash for best performance with Paid Tier 1.');
+}
+
+testAllModels();

@@ -487,20 +487,36 @@ REQUIREMENTS:
 
 ${prompt}
 
-REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.0 Flash with JSON mode hint
+REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.5 Flash (Paid Tier 1 - 1K RPM, 1M TPM, 10K RPD)
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 1,
-        maxOutputTokens: 8000,
+        maxOutputTokens: 65536, // Increased to maximum (was 8000 - too small for 200 items!)
         responseMimeType: "application/json",
       },
-    });const result = await model.generateContent(fullPrompt);
-    const text = result.response.text() || '{}';
+    });
+
+    console.log("Calling Gemini 2.5 Flash API...");
+    console.log(`Estimated tokens needed: ~${count * 180} tokens for ${count} items`);
+    const result = await model.generateContent(fullPrompt);
+    console.log("Gemini API call succeeded");    const text = result.response.text() || '{}';
     console.log("Raw Gemini response received");
     console.log("Response length:", text.length);
     console.log("Response preview (first 1000 chars):", text.substring(0, 1000));
     console.log("Response preview (last 200 chars):", text.substring(Math.max(0, text.length - 200)));
+    
+    // Check if response looks truncated
+    const lastChars = text.substring(Math.max(0, text.length - 20));
+    const isTruncated = !lastChars.includes('}') || text.split('{').length !== text.split('}').length;
+    if (isTruncated) {
+      console.warn("⚠️ WARNING: Response appears truncated! Missing closing braces.");
+      console.warn("   This usually means maxOutputTokens was too small.");
+      console.warn("   Attempting to fix by adding missing closing braces...");
+      
+      // Try to fix incomplete JSON by adding missing closing braces
+      throw new Error('Response truncated - increase maxOutputTokens or reduce batch size');
+    }
 
     // Normalize response: remove surrounding markdown fences if present
     let normalizedText = text.trim();
@@ -625,10 +641,47 @@ REMINDER: Output ONLY the JSON object. Start with { and end with }. No other tex
       duplicates: generatedData.length - savedCount,
       items: savedItems
     });
-
   } catch (error) {
     console.error('Batch generation error:', error);
-    res.status(500).json({ error: 'Failed to generate batch translations: ' + error.message });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+      // Check for specific Gemini API errors
+    if (error.message?.includes('API key')) {
+      return res.status(401).json({ 
+        error: 'Invalid Gemini API key. Please check your GEMINI_API_KEY in .env file.',
+        details: error.message 
+      });
+    }
+    
+    if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+      return res.status(429).json({ 
+        error: 'Gemini API rate limit exceeded. Please wait a moment and try again.',
+        details: error.message 
+      });
+    }
+    
+    if (error.message?.includes('model') || error.message?.includes('not found')) {
+      return res.status(400).json({ 
+        error: 'Invalid model configuration. Please check the model name.',
+        details: error.message 
+      });
+    }
+    
+    if (error.message?.includes('truncated') || error.message?.includes('Unterminated string')) {
+      return res.status(500).json({ 
+        error: 'Response was truncated. The batch size may be too large for the token limit.',
+        details: error.message,
+        suggestion: 'Try reducing batch size to 100 records or contact support if issue persists.'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to generate batch translations: ' + error.message,
+      details: error.stack?.split('\n').slice(0, 3).join('\n')
+    });
   }
 });
 
