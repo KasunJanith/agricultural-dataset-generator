@@ -614,27 +614,32 @@ REMINDER: Output ONLY the JSON object. Start with { and end with }. No other tex
         responseMimeType: "application/json",
         // Note: responseSchema not supported in gemini-2.5-flash
       },
-    });
-
-    console.log(`\n🚀 Calling Gemini 2.5 Flash API...`);
+    });    console.log(`\n🚀 Calling Gemini 2.5 Flash API...`);
     console.log(`   Model: gemini-2.5-flash`);
     console.log(`   Max output tokens: ${dynamicMaxTokens}`);
     console.log(`   Response format: application/json (no schema enforcement)`);
-    const result = await model.generateContent(fullPrompt);
-    console.log("✅ Gemini API call succeeded");
+    
+    let result;
+    try {
+      result = await model.generateContent(fullPrompt);
+      console.log("✅ Gemini API call succeeded");
+    } catch (apiError) {
+      console.error("❌ Gemini API call failed:", apiError.message);
+      console.error("API Error details:", apiError);
+      throw new Error(`Gemini API error: ${apiError.message}`);
+    }
 
     const text = result.response.text() || '{}';
     console.log("Raw Gemini response received");
     console.log("Response length:", text.length);
     console.log("Response preview (first 500 chars):", text.substring(0, 500));
-    console.log("Response preview (last 500 chars):", text.substring(Math.max(0, text.length - 500)));    // Parse JSON response
+    console.log("Response preview (last 500 chars):", text.substring(Math.max(0, text.length - 500)));// Parse JSON response
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(text);
       console.log("✅ JSON parsed successfully");
       console.log("Response keys:", Object.keys(parsedResponse));
-    } catch (e) {
-      console.error("❌ JSON parse failed:", e.message);
+    } catch (e) {      console.error("❌ JSON parse failed:", e.message);
       console.error("Full response text:", text);
       console.error("Response starts with:", text.substring(0, 100));
       console.error("Response ends with:", text.substring(Math.max(0, text.length - 100)));
@@ -651,15 +656,17 @@ REMINDER: Output ONLY the JSON object. Start with { and end with }. No other tex
           .trim();
         
         console.log("Attempting to parse after removing markdown...");
+        console.log("Cleaned text preview:", cleanedText.substring(0, 200));
         try {
           parsedResponse = JSON.parse(cleanedText);
           console.log("✅ JSON parsed successfully after cleanup");
         } catch (e2) {
           console.error("❌ Still failed after cleanup:", e2.message);
-          throw new Error('Invalid JSON response from Gemini API');
+          console.error("Cleaned text starts with:", cleanedText.substring(0, 200));
+          throw new Error(`Invalid JSON response from Gemini API. Response starts with: ${text.substring(0, 200)}`);
         }
       } else {
-        throw new Error('Invalid JSON response from Gemini API');
+        throw new Error(`Invalid JSON response from Gemini API. Response: ${text.substring(0, 300)}`);
       }
     }
 
