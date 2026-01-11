@@ -60,23 +60,32 @@ function App() {
   const fetchStatistics = async () => {
     try {
       const response = await axios.get(`${API_BASE}/statistics`)
-      setStatistics(response.data)
-    } catch (err) {      console.error('Failed to load statistics')
+      setStatistics(response.data)    } catch (err) {
+      console.error('Failed to load statistics')
     }
   }
+  
   const handleGenerate = async () => {
     if (serverHealth !== 'healthy') {
       setError('Server is not healthy. Please check backend connection.')
       return
     }
     
+    // Check if subdomain is selected
+    if (!subdomain) {
+      setError('Please select a subdomain first. Wait for subdomains to load.')
+      return
+    }
+    
     setLoading(true)
     setError('')
     setSuccess('')
-      try {
+    
+    try {
+      console.log('Sending request with subdomain:', subdomain);
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 200  // Changed back from 150 to 200
+        count: 100  // Reduced to 100 with Gemini 3 Flash
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -86,7 +95,10 @@ function App() {
       setSuccess(successMessage + duplicateMessage)
       fetchDatasets(selectedSubdomainFilter)
       fetchStatistics()
-    } catch (err) {      setError(err.response?.data?.error || 'Failed to generate translations. Check your Gemini API key.')
+    } catch (err) {
+      console.error('Generation error:', err);
+      console.error('Error response:', err.response?.data);
+      setError(err.response?.data?.error || 'Failed to generate translations. Check your Gemini API key.')
     } finally {
       setLoading(false)
     }
@@ -129,12 +141,10 @@ function App() {
   const totalRecords = datasets.length
   const filteredSubdomain = selectedSubdomainFilter || 'All Subdomains'
   return (
-    <div className="container">
-      {loading && (        <div className="loading-overlay">
+    <div className="container">      {loading && (        <div className="loading-overlay">
           <div className="loading-popup">
             <div className="spinner"></div>
-            <h3>Generating Dataset...</h3>
-            <p>Processing with Google Gemini 2.0 Flash</p>            <p className="loading-subtext">Generating 100 words + 100 sentences (3-4 minutes)</p>
+            <h3>Generating Dataset...</h3>            <p>Processing with Gemini 2.5 Flash (JSON Mode)</p>            <p className="loading-subtext">Generating 50 words + 50 sentences (2-3 minutes)</p>
           </div>
         </div>
       )}
@@ -142,9 +152,8 @@ function App() {
       <div className="header">
         <h1>🌱 Agricultural Translation Dataset Generator</h1>
         <p>Research tool for generating Sinhala-English agricultural translation datasets for mT5 model training</p>
-        <div style={{ marginTop: '10px' }}>
-          Server Status: <span className="health-status">{serverHealth}</span>          <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
-            Environment: {process.env.NODE_ENV || 'development'} | Model: Gemini 2.0 Flash
+        <div style={{ marginTop: '10px' }}>          Server Status: <span className="health-status">{serverHealth}</span>          <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
+            Environment: {process.env.NODE_ENV || 'development'} | Model: Gemini 2.5 Flash
           </span>
         </div>
       </div>
@@ -169,12 +178,10 @@ function App() {
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}        >
-          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 200 Records (100 Words + 100 Sentences)'}
-        </button>
-
-        <div className="stats-info">
-          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 200 training records
-          <br/>• Utilizes Google Gemini 2.0 Flash (free tier: 1500 requests/day)
+          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 100 Records (50 Words + 50 Sentences)'}
+        </button>        <div className="stats-info">
+          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 100 training records
+          <br/>• Utilizes Gemini 2.5 Flash with JSON mode (flexible parsing)
           <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
           <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
           <br/>• Automatic duplicate detection based on UNIQUE(sinhala, subdomain) constraint
@@ -228,8 +235,8 @@ function App() {
       )}      <div className="dataset-table">
         {datasets.length === 0 ? (          <div className="loading">
             <h3>No datasets generated yet</h3>
-            <p>Select a subdomain above and click "Generate 200 Records" to begin.</p>
-            <p>Each batch generates 100 words/phrases and 100 sentences (200 total) for balanced training data.</p>
+            <p>Select a subdomain above and click "Generate 100 Records" to begin.</p>
+            <p>Each batch generates 50 words/phrases and 50 sentences (100 total) for balanced training data.</p>
           </div>
         ) : (
           <>
