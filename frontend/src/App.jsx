@@ -73,11 +73,10 @@ function App() {
     setLoading(true)
     setError('')
     setSuccess('')
-    
-    try {
+      try {
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 150  // Reduced from 200 to fit within token limits with conservative estimates
+        count: 200  // Changed back from 150 to 200
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -135,7 +134,7 @@ function App() {
           <div className="loading-popup">
             <div className="spinner"></div>
             <h3>Generating Dataset...</h3>
-            <p>Processing with Google Gemini 2.0 Flash</p>            <p className="loading-subtext">Generating 75 words + 75 sentences (2-3 minutes)</p>
+            <p>Processing with Google Gemini 2.0 Flash</p>            <p className="loading-subtext">Generating 100 words + 100 sentences (3-4 minutes)</p>
           </div>
         </div>
       )}
@@ -170,7 +169,7 @@ function App() {
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}        >
-          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 150 Records (75 Words + 75 Sentences)'}
+          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 200 Records (100 Words + 100 Sentences)'}
         </button>
 
         <div className="stats-info">
@@ -227,11 +226,10 @@ function App() {
           </div>
         </div>
       )}      <div className="dataset-table">
-        {datasets.length === 0 ? (
-          <div className="loading">
+        {datasets.length === 0 ? (          <div className="loading">
             <h3>No datasets generated yet</h3>
-            <p>Select a subdomain above and click "Generate 50 Records" to begin.</p>
-            <p>Each batch generates 25 words/phrases and 25 sentences (50 total) for balanced training data.</p>
+            <p>Select a subdomain above and click "Generate 200 Records" to begin.</p>
+            <p>Each batch generates 100 words/phrases and 100 sentences (200 total) for balanced training data.</p>
           </div>
         ) : (
           <>

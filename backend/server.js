@@ -125,11 +125,11 @@ app.get('/api/token-info', (req, res) => {
 
 // Token allocation configuration for dynamic sizing
 const TOKEN_CONFIG = {
-  TOKENS_PER_ITEM: 280,        // Increased from 200 - more conservative estimate per item
+  TOKENS_PER_ITEM: 230,        // Reduced from 280 to fit 200 items
   SYSTEM_PROMPT_TOKENS: 3000,  // Approximate tokens for system prompt
-  SAFETY_BUFFER: 1.5,          // Increased to 50% safety margin (was 1.3/30%)
+  SAFETY_BUFFER: 1.35,         // Reduced from 1.5 to fit 200 items
   MAX_MODEL_TOKENS: 65536,     // Gemini 2.5 Flash maximum output tokens
-  WARN_THRESHOLD: 0.85,        // Warn earlier at 85% capacity (was 0.9/90%)
+  WARN_THRESHOLD: 0.85,        // Warn earlier at 85% capacity
 };
 
 app.post('/api/generate-batch', async (req, res) => {
