@@ -125,64 +125,16 @@ app.get('/api/token-info', (req, res) => {
 
 // Token allocation configuration for dynamic sizing
 const TOKEN_CONFIG = {
-  TOKENS_PER_ITEM: 230,        // Average tokens per item (word or sentence)
+  TOKENS_PER_ITEM: 800,        // Increased to handle full record with all fields
   SYSTEM_PROMPT_TOKENS: 3000,  // Approximate tokens for system prompt
-  SAFETY_BUFFER: 1.35,         // 35% safety buffer
+  SAFETY_BUFFER: 1.5,          // 50% safety margin
   MAX_MODEL_TOKENS: 65536,     // Gemini 2.5 Flash maximum output tokens
   WARN_THRESHOLD: 0.85,        // Warn earlier at 85% capacity
 };
 
-// Simplified JSON Schema for Gemini 2.5 Flash (limited schema support)
-const responseSchema = {
-  type: "object",
-  properties: {
-    items: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          sinhala: {
-            type: "string",
-            description: "Pure Sinhala Unicode text (no English words)"
-          },
-          singlish1: {
-            type: "string",
-            description: "Primary Singlish romanization (always required)"
-          },
-          singlish2: {
-            type: "string",
-            description: "Conservative SMS-style abbreviation (can be empty string if not applicable)"
-          },
-          singlish3: {
-            type: "string",
-            description: "Natural English-Sinhala mixed form (can be empty string if not applicable)"
-          },
-          variant1: {
-            type: "string",
-            description: "Direct literal English translation"
-          },
-          variant2: {
-            type: "string",
-            description: "Natural conversational English"
-          },
-          variant3: {
-            type: "string",
-            description: "English with domain context/explanation"
-          },          type: {
-            type: "string",
-            description: "Type: word or sentence"
-          }
-        },
-        required: ["sinhala", "singlish1", "variant1", "variant2", "variant3", "type"]
-      }
-    }
-  },
-  required: ["items"]
-};
-
 app.post('/api/generate-batch', async (req, res) => {
   try {
-    const { subdomain, count = 100 } = req.body;
+    const { subdomain, count = 25 } = req.body;  // 25 items: 12-13 words + 12-13 sentences
     
     if (!subdomain) {
       return res.status(400).json({ error: 'Subdomain is required' });
@@ -605,94 +557,87 @@ REQUIREMENTS:
 
 ${prompt}
 
-REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.5 Flash WITHOUT responseSchema (not supported in 2.5)
+REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.5 Flash with dynamically calculated token limit
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 1,
-        maxOutputTokens: dynamicMaxTokens,
+        maxOutputTokens: dynamicMaxTokens, // Dynamically calculated based on batch size!
         responseMimeType: "application/json",
-        // Note: responseSchema not supported in gemini-2.5-flash
       },
-    });    console.log(`\n🚀 Calling Gemini 2.5 Flash API...`);
+    });
+
+    console.log(`\n🚀 Calling Gemini 2.5 Flash API...`);
     console.log(`   Model: gemini-2.5-flash`);
     console.log(`   Max output tokens: ${dynamicMaxTokens}`);
-    console.log(`   Response format: application/json (no schema enforcement)`);
-    
-    let result;
-    try {
-      result = await model.generateContent(fullPrompt);
-      console.log("✅ Gemini API call succeeded");
-    } catch (apiError) {
-      console.error("❌ Gemini API call failed:", apiError.message);
-      console.error("API Error details:", apiError);
-      throw new Error(`Gemini API error: ${apiError.message}`);
-    }
-
-    const text = result.response.text() || '{}';
+    const result = await model.generateContent(fullPrompt);
+    console.log("✅ Gemini API call succeeded");const text = result.response.text() || '{}';
     console.log("Raw Gemini response received");
     console.log("Response length:", text.length);
-    console.log("Response preview (first 500 chars):", text.substring(0, 500));
-    console.log("Response preview (last 500 chars):", text.substring(Math.max(0, text.length - 500)));// Parse JSON response
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(text);
-      console.log("✅ JSON parsed successfully");
-      console.log("Response keys:", Object.keys(parsedResponse));
-    } catch (e) {      console.error("❌ JSON parse failed:", e.message);
-      console.error("Full response text:", text);
-      console.error("Response starts with:", text.substring(0, 100));
-      console.error("Response ends with:", text.substring(Math.max(0, text.length - 100)));
+    console.log("Response preview (first 1000 chars):", text.substring(0, 1000));
+    console.log("Response preview (last 200 chars):", text.substring(Math.max(0, text.length - 200)));
+    
+    // Check if response looks truncated
+    const lastChars = text.substring(Math.max(0, text.length - 20));
+    const isTruncated = !lastChars.includes('}') || text.split('{').length !== text.split('}').length;
+    if (isTruncated) {
+      console.warn("⚠️ WARNING: Response appears truncated! Missing closing braces.");
+      console.warn("   This usually means maxOutputTokens was too small.");
+      console.warn("   Attempting to fix by adding missing closing braces...");
       
-      // Try to clean the response
-      let cleanedText = text.trim();
-      
-      // Remove markdown code blocks if present
-      if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText
-          .replace(/^```json\s*/i, '')
-          .replace(/^```\s*/i, '')
-          .replace(/```\s*$/i, '')
-          .trim();
-        
-        console.log("Attempting to parse after removing markdown...");
-        console.log("Cleaned text preview:", cleanedText.substring(0, 200));
-        try {
-          parsedResponse = JSON.parse(cleanedText);
-          console.log("✅ JSON parsed successfully after cleanup");
-        } catch (e2) {
-          console.error("❌ Still failed after cleanup:", e2.message);
-          console.error("Cleaned text starts with:", cleanedText.substring(0, 200));
-          throw new Error(`Invalid JSON response from Gemini API. Response starts with: ${text.substring(0, 200)}`);
-        }
-      } else {
-        throw new Error(`Invalid JSON response from Gemini API. Response: ${text.substring(0, 300)}`);
-      }
+      // Try to fix incomplete JSON by adding missing closing braces
+      throw new Error('Response truncated - increase maxOutputTokens or reduce batch size');
     }
 
-    // Extract items array - handle both formats
+    // Normalize response: remove surrounding markdown fences if present
+    let normalizedText = text.trim();
+    if (normalizedText.startsWith('```')) {
+      normalizedText = normalizedText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
+    }
+
+    // Extract JSON from response (expecting an object with an `items` array)
     let generatedData;
-    if (Array.isArray(parsedResponse)) {
-      // Model returned array directly
-      generatedData = parsedResponse;
-      console.log("Response is direct array");
-    } else if (parsedResponse.items && Array.isArray(parsedResponse.items)) {
-      // Model returned { items: [...] }
-      generatedData = parsedResponse.items;
-      console.log("Response has items array");
-    } else {
-      // Try to find any array in the response
-      const arrayKey = Object.keys(parsedResponse).find(key => Array.isArray(parsedResponse[key]));
-      if (arrayKey) {
-        generatedData = parsedResponse[arrayKey];
-        console.log(`Found array in key: ${arrayKey}`);
-      } else {
-        console.error("Response structure:", JSON.stringify(parsedResponse, null, 2));
-        throw new Error('Response missing items array');
-      }
-    }
+    try {
+      const direct = JSON.parse(normalizedText);
+      console.log("Direct JSON.parse succeeded, keys:", Object.keys(direct));
 
-    console.log(`Parsed ${generatedData.length} items from response`);
+      if (Array.isArray(direct)) {
+        // Fallback if model still returns a bare array
+        generatedData = direct;
+      } else if (Array.isArray(direct.items)) {
+        generatedData = direct.items;
+        console.log("Using 'items' array from response object");
+      } else {
+        const firstArrayKey = Object.keys(direct).find(key => Array.isArray(direct[key]));
+        if (firstArrayKey) {
+          generatedData = direct[firstArrayKey];
+          console.log(`Found array in '${firstArrayKey}' property`);
+        } else {
+          throw new Error('No JSON array found in response object');
+        }
+      }    } catch (e) {
+      console.log("Direct JSON.parse failed:", e.message);
+      console.log("Attempting regex-based array extraction");
+      console.log("Normalized text (full):", normalizedText);
+
+      const arrayMatch = normalizedText.match(/\[[\s\S]*\]/);
+      if (!arrayMatch) {
+        console.error('No JSON array found in Gemini response text');
+        console.error('Full normalized text:', normalizedText);
+        throw new Error('Invalid response format from Gemini API. Expected JSON array');
+      }      try {
+        generatedData = JSON.parse(arrayMatch[0]);
+        console.log("Regex-based JSON array parse succeeded, length:", generatedData.length);
+      } catch (innerErr) {
+        console.error('Failed to parse extracted JSON array:', innerErr.message);
+        console.error('Extracted array string:', arrayMatch[0].substring(0, 500));
+        throw new Error('Invalid response format from Gemini API. Expected JSON array');
+      }
+    }console.log(`Parsed ${generatedData.length} items from response`);
     if (generatedData.length > 0) {
       console.log("First item sample:", JSON.stringify(generatedData[0], null, 2));
     }
@@ -721,13 +666,15 @@ REMINDER: Output ONLY the JSON object. Start with { and end with }. No other tex
     `);    let savedCount = 0;
     const savedItems = [];
     let duplicateCount = 0;
-    let errorCount = 0;    for (const item of generatedData) {
+    let errorCount = 0;
+
+    for (const item of generatedData) {
       await new Promise((resolve, reject) => {
         stmt.run([
           item.sinhala,
           item.singlish1 || item.singlish || item.sinhala, // fallback for backward compatibility
-          (item.singlish2 && item.singlish2.trim()) || null, // Convert empty strings to null
-          (item.singlish3 && item.singlish3.trim()) || null, // Convert empty strings to null
+          item.singlish2 || null,
+          item.singlish3 || null,
           item.variant1,
           item.variant2,
           item.variant3,

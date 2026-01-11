@@ -70,22 +70,19 @@ function App() {
       setError('Server is not healthy. Please check backend connection.')
       return
     }
-    
-    // Check if subdomain is selected
+      // Check if subdomain is selected
     if (!subdomain) {
       setError('Please select a subdomain first. Wait for subdomains to load.')
       return
     }
-    
-    setLoading(true)
+      setLoading(true)
     setError('')
     setSuccess('')
-    
-    try {
+      try {
       console.log('Sending request with subdomain:', subdomain);
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 100  // Reduced to 100 with Gemini 3 Flash
+        count: 25  // 25 items: 12-13 words + 12-13 sentences
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -144,7 +141,8 @@ function App() {
     <div className="container">      {loading && (        <div className="loading-overlay">
           <div className="loading-popup">
             <div className="spinner"></div>
-            <h3>Generating Dataset...</h3>            <p>Processing with Gemini 2.5 Flash (JSON Mode)</p>            <p className="loading-subtext">Generating 50 words + 50 sentences (2-3 minutes)</p>
+            <h3>Generating Dataset...</h3>            <p>Processing with Gemini 2.5 Flash</p>
+            <p className="loading-subtext">Generating 12-13 words + 12-13 sentences (~1 minute)</p>
           </div>
         </div>
       )}
@@ -178,10 +176,10 @@ function App() {
           onClick={handleGenerate}
           className="generate-btn"
           disabled={loading || serverHealth !== 'healthy'}        >
-          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 100 Records (50 Words + 50 Sentences)'}
+          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 25 Records (12-13 Words + 12-13 Sentences)'}
         </button>        <div className="stats-info">
-          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 100 training records
-          <br/>• Utilizes Gemini 2.5 Flash with JSON mode (flexible parsing)
+          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 25 training records
+          <br/>• Utilizes Gemini 2.5 Flash (65,536 token output limit)
           <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
           <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
           <br/>• Automatic duplicate detection based on UNIQUE(sinhala, subdomain) constraint
@@ -234,9 +232,8 @@ function App() {
         </div>
       )}      <div className="dataset-table">
         {datasets.length === 0 ? (          <div className="loading">
-            <h3>No datasets generated yet</h3>
-            <p>Select a subdomain above and click "Generate 100 Records" to begin.</p>
-            <p>Each batch generates 50 words/phrases and 50 sentences (100 total) for balanced training data.</p>
+            <h3>No datasets generated yet</h3>            <p>Select a subdomain above and click "Generate 25 Records" to begin.</p>
+            <p>Each batch generates 12-13 words/phrases and 12-13 sentences (25 total) for balanced training data.</p>
           </div>
         ) : (
           <>
