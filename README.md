@@ -4,7 +4,7 @@ A full-stack web application that automatically generates Sinhala agricultural t
 
 ## Features
 
-- 🤖 **AI-Powered Generation**: Uses OpenAI's GPT-5.1 for advanced multilingual Sinhala-English translation
+- 🤖 **AI-Powered Generation**: Uses Gemini 2.5 flash for advanced multilingual Sinhala-English translation
 - 🎯 **High Quality**: State-of-the-art language model with excellent Sinhala support
 - 🔄 **Multiple Variations**: Generates 1-3 Singlish romanizations and 3 English translation variants
 - 🌾 **10 Agricultural Subdomains**: Crop cultivation, livestock, soil science, pest management, and more
