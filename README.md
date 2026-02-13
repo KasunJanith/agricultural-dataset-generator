@@ -1,6 +1,6 @@
-# 🌱 Agricultural Translation Dataset Generator
+# Agricultural Translation Dataset Generator for Research purpose
 
-A full-stack web application that automatically generates Sinhala agricultural terms and sentences with multiple Singlish variations and English translations using **OpenAI GPT-5.1**.
+A full-stack web application that automatically generates Sinhala agricultural terms and sentences with multiple Singlish variations and English translations using **Gemini 2.5 flash**.
 
 ## Features
 
