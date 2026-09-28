@@ -559,7 +559,7 @@ ${prompt}
 
 REMINDER: Output ONLY the JSON object. Start with { and end with }. No other text.`;    // Use Gemini 2.5 Flash with dynamically calculated token limit
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'Gemini 2.5 Flash',
       generationConfig: {
         temperature: 1,
         maxOutputTokens: dynamicMaxTokens, // Dynamically calculated based on batch size!
@@ -568,7 +568,7 @@ REMINDER: Output ONLY the JSON object. Start with { and end with }. No other tex
     });
 
     console.log(`\n🚀 Calling Gemini 2.5 Flash API...`);
-    console.log(`   Model: gemini-2.5-flash`);
+    console.log(`   Model: Gemini 2.5 Flash`);
     console.log(`   Max output tokens: ${dynamicMaxTokens}`);
     const result = await model.generateContent(fullPrompt);
     console.log("✅ Gemini API call succeeded");const text = result.response.text() || '{}';
