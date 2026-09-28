@@ -19,7 +19,7 @@ A full-stack web application that automatically generates Sinhala agricultural t
 ### Backend
 - Node.js + Express
 - SQLite3 for database
-- OpenAI API (GPT-5.1)
+- Gemini Api Key 
 - CORS enabled
 
 ### Frontend
@@ -51,7 +51,7 @@ agricultural-dataset-generator/
 
 ### Prerequisites
 - Node.js 18+ installed
-- Groq API key ([Get one FREE here](https://console.groq.com/keys))
+- GEMINI API key 
 
 ### Backend Setup
 
@@ -67,12 +67,10 @@ npm install
 
 3. Create `.env` file:
 ```bash
-GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 PORT=5000
 NODE_ENV=development
 ```
-
-**Get your FREE Groq API key**: https://console.groq.com/keys
 
 4. Start the backend server:
 ```bash
@@ -203,18 +201,10 @@ CREATE TABLE datasets (
 - Check that vite is in devDependencies
 - Verify build command includes `npm install`
 
-## License
-
-MIT License - feel free to use this for your research or projects!
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## Author
 
-KasunJanith
+Kasun Thilakarathna
 
 ---
 
-Built with ❤️ for agricultural research and NLP applications in Sinhala language.
+
