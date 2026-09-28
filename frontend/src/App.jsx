@@ -6,6 +6,7 @@ function App() {
   const [subdomain, setSubdomain] = useState('')
   const [subdomains, setSubdomains] = useState([])
   const [datasets, setDatasets] = useState([])
+  const [batchSize, setBatchSize] = useState(2)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -79,10 +80,10 @@ function App() {
     setError('')
     setSuccess('')
       try {
-      console.log('Sending request with subdomain:', subdomain);
+      console.log('Sending request with subdomain:', subdomain, 'count:', batchSize);
       const response = await axios.post(`${API_BASE}/generate-batch`, {
         subdomain,
-        count: 25  // 25 items: 12-13 words + 12-13 sentences
+        count: Number(batchSize) || 2
       })
 
       const successMessage = `✅ Successfully generated ${response.data.generated} new records!`
@@ -138,11 +139,14 @@ function App() {
   const totalRecords = datasets.length
   const filteredSubdomain = selectedSubdomainFilter || 'All Subdomains'
   return (
-    <div className="container">      {loading && (        <div className="loading-overlay">
+    <div className="container">
+      {loading && (
+        <div className="loading-overlay">
           <div className="loading-popup">
             <div className="spinner"></div>
-            <h3>Generating Dataset...</h3>            <p>Processing with Gemini 2.5 Flash</p>
-            <p className="loading-subtext">Generating 12-13 words + 12-13 sentences (~1 minute)</p>
+            <h3>Generating Dataset...</h3>
+            <p>Processing with Gemini 3.5 Flash Lite</p>
+            <p className="loading-subtext">Generating {batchSize} record{batchSize > 1 ? 's' : ''} (~a few seconds)</p>
           </div>
         </div>
       )}
@@ -150,8 +154,10 @@ function App() {
       <div className="header">
         <h1>🌱 Agricultural Translation Dataset Generator</h1>
         <p>Research tool for generating Sinhala-English agricultural translation datasets for mT5 model training</p>
-        <div style={{ marginTop: '10px' }}>          Server Status: <span className="health-status">{serverHealth}</span>          <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
-            Environment: {process.env.NODE_ENV || 'development'} | Model: Gemini 2.5 Flash
+        <div style={{ marginTop: '10px' }}>
+          Server Status: <span className="health-status">{serverHealth}</span>
+          <span style={{ marginLeft: '20px', fontSize: '14px', color: '#666' }}>
+            Environment: {process.env.NODE_ENV || 'development'} | Model: Gemini 3.5 Flash Lite
           </span>
         </div>
       </div>
@@ -171,17 +177,41 @@ function App() {
               </option>
             ))}
           </select>
-        </div>        {error && <div className="error">❌ {error}</div>}
-        {success && <div className="success">{success}</div>}        <button 
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="batchSize">Select Batch Size:</label>
+          <select
+            id="batchSize"
+            value={batchSize}
+            onChange={(e) => setBatchSize(Number(e.target.value))}
+            disabled={loading}
+          >
+            <option value={1}>1 Record (Single record - Instant)</option>
+            <option value={2}>2 Records (1 Word + 1 Sentence )</option>
+            <option value={4}>4 Records (2 Words + 2 Sentences)</option>
+            <option value={10}>10 Records (5 Words + 5 Sentences)</option>
+            <option value={25}>25 Records (Full batch)</option>
+          </select>
+        </div>
+
+        {error && <div className="error">❌ {error}</div>}
+        {success && <div className="success">{success}</div>}
+
+        <button 
           onClick={handleGenerate}
           className="generate-btn"
-          disabled={loading || serverHealth !== 'healthy'}        >
-          {loading ? '🔄 Generating Dataset...' : '🚀 Generate 25 Records (12-13 Words + 12-13 Sentences)'}
-        </button>        <div className="stats-info">
-          <p><strong>📝 How to use the site:</strong>          <br/>• Select an agricultural subdomain and generate a batch of 25 training records
-          <br/>• Utilizes Gemini 2.5 Flash (65,536 token output limit)
+          disabled={loading || serverHealth !== 'healthy'}
+        >
+          {loading ? '🔄 Generating Dataset...' : `🚀 Generate ${batchSize} Record${batchSize > 1 ? 's' : ''}`}
+        </button>
+
+        <div className="stats-info">
+          <p><strong>📝 How to use the site:</strong>
+          <br/>• Select an agricultural subdomain and choose a batch size 
+          <br/>• Powered by Gemini 3.8 Flash with dynamic token allocation
           <br/>• Handles dialectal variations, spelling inconsistencies, and domain-specific terminology
-          <br/>• Produces 1-3 Singlish romanization variations and 3 English translation variants per entry
+          <br/>• Produces high-quality Singlish romanization and accurate English translation per entry
           <br/>• Automatic duplicate detection based on UNIQUE(sinhala, subdomain) constraint
           <br/>• Data stored in SQLite and exportable as CSV </p>
         </div>
@@ -261,16 +291,16 @@ function App() {
                     <td style={{ fontFamily: 'Arial, sans-serif' }}>{dataset.sinhala}</td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {dataset.singlish1 && <div>1. {dataset.singlish1}</div>}
+                        {dataset.singlish1 && <div>{dataset.singlish2 ? '1. ' : ''}{dataset.singlish1}</div>}
                         {dataset.singlish2 && <div>2. {dataset.singlish2}</div>}
                         {dataset.singlish3 && <div>3. {dataset.singlish3}</div>}
                       </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {dataset.variant1 && <div>1. {dataset.variant1}</div>}
-                        {dataset.variant2 && <div>2. {dataset.variant2}</div>}
-                        {dataset.variant3 && <div>3. {dataset.variant3}</div>}
+                        {dataset.variant1 && <div>{(dataset.variant2 && dataset.variant2 !== dataset.variant1) ? '1. ' : ''}{dataset.variant1}</div>}
+                        {dataset.variant2 && dataset.variant2 !== dataset.variant1 && <div>2. {dataset.variant2}</div>}
+                        {dataset.variant3 && dataset.variant3 !== dataset.variant1 && <div>3. {dataset.variant3}</div>}
                       </div>
                     </td>
                     <td>{dataset.subdomain}</td>

@@ -16,11 +16,12 @@ console.log('✅ API Key found:', GEMINI_API_KEY.substring(0, 10) + '...');
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 async function testGeminiConnection() {
-  console.log('\n🔍 Testing Gemini 2.5 Flash API connection...\n');
+  const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+  console.log(`\n🔍 Testing ${modelName} API connection...\n`);
   
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: modelName,
       generationConfig: {
         temperature: 1,
         maxOutputTokens: 1000,
@@ -29,7 +30,7 @@ async function testGeminiConnection() {
     });
     
     console.log('✅ Model created successfully');
-    console.log('   Model: gemini-2.5-flash');
+    console.log(`   Model: ${modelName}`);
     console.log('   Max tokens: 1000');
     console.log('   Response format: application/json\n');
     
@@ -39,11 +40,7 @@ async function testGeminiConnection() {
     {
       "sinhala": "පොහොර",
       "singlish1": "pohora",
-      "singlish2": "pohra",
-      "singlish3": null,
       "variant1": "fertilizer",
-      "variant2": "fertiliser",
-      "variant3": "plant nutrients",
       "type": "word"
     }
   ]
